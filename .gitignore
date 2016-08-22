@@ -1,4 +1,6 @@
 /.classpath
 /.project
 /.settings/
-/target/
+/target/*
+!target/BLEND_Plugin-0.1.0-jar-with-dependencies.jar
+
