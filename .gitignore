@@ -3,5 +3,5 @@
 /.settings/
 *.DS_Store
 /target/*
-!target/BLEND_Plugin-0.1.0-jar-with-dependencies.jar
+!target/BLEND_Plugin-0.1.1.jar
 
