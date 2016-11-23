@@ -47,9 +47,12 @@ public class PredictClass {
         this.path = folder + filename;
     }
 
-    public String exec(FilteredClassifier fc, String[] imageArray, int imageIndex, Nucleus nucleus, String[] classLabels) {
+    //public String exec(FilteredClassifier fc, String[] imageArray, int imageIndex, Nucleus nucleus, String[] classLabels) {
+      public String exec(FilteredClassifier fc, ImagePlus imp, Nucleus nucleus, String[] classLabels) {
+
         Roi roi = nucleus.roiNucleus;
-        ImagePlus imp = IJ.openImage(inputDirectory + imageArray[imageIndex]);
+        //imp.show();
+        //ImagePlus imp = IJ.openImage(inputDirectory + imageArray[imageIndex]);
 
         shapeDescriptors.ShapeDescriptors morpho = new shapeDescriptors.ShapeDescriptors();
         nucleus.morpho = morpho.exec(imp, roi, "Morph");

@@ -21,7 +21,7 @@
 
     <groupId>Verschuuren.group</groupId>
     <artifactId>BLEND_Plugin</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
 
     <name>BLEbbedNucleiDetector</name>
     <description>A Maven project implementing an ImageJ 1.x plugin</description>
@@ -87,12 +87,18 @@
         <dependency>
             <groupId>net.imagej</groupId>
             <artifactId>ij</artifactId>
-            <version>1.50g</version>
+            <version>1.51h</version>
         </dependency>
         <dependency>
             <groupId>nz.ac.waikato.cms.weka</groupId>
             <artifactId>weka-dev</artifactId>
-            <version>3.7.12</version>
+            <version>3.9.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>nz.ac.waikato.cms.weka.thirdparty</groupId>
+                    <artifactId>java-cup-11b-runtime</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 </project>

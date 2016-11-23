@@ -17,6 +17,7 @@ package GUI;
 import java.util.*;
 import java.util.prefs.Preferences;
 import ij.Macro;
+import ij.plugin.ZProjector;
 import ij.process.AutoThresholder;
 import ij.plugin.filter.RankFilters;
 import java.awt.Font;
@@ -39,6 +40,10 @@ public class SettingsGUI {
 
     int impWidth;
     int impHeight;
+    double calibration;
+    int nChannels;
+    int channel;
+    int zProjection;
 
     boolean backgroundSubtraction;
     double sizeRollingBall;
@@ -58,6 +63,8 @@ public class SettingsGUI {
         Preferences prefs = Preferences.userRoot().node(this.getClass().getName());
 
         //Options
+        String [] channelOptions = {"1","2","3","4"};
+        String [] zProjOptions = ZProjector.METHODS;
         String[] thresholds = {"Huang", "IJ_IsoData", "Intermodes", "IsoData", "Li", "MaxEntropy", "Mean",
             "MinError", "Minimum", "Moment", "Otsu", "Percentile", "RenyiEntropy", "Shanbhag", "Triangle", "Yen"};
         String[] thresholdsLocal = {"-", "Huang", "IJ_IsoData", "Intermodes", "IsoData", "Li", "MaxEntropy", "Mean",
@@ -90,6 +97,11 @@ public class SettingsGUI {
             gd.addMessage("General:", new Font(null, Font.BOLD, 12));
             gd.addDirectoryField("Choose Image Folder: ", prefs.get("imageFolder", ""), 12);
             gd.addDirectoryField("Choose Output Folder: ", prefs.get("outputFolder", ""), 12);
+            gd.setInsets(0, 0, 0);
+            gd.addNumericField("Calibration", prefs.getDouble("calibration", 0.19), 5, 10, "µm/px");
+            gd.addChoice("Number Channels",channelOptions, prefs.get("nChannels","1"));
+            gd.addChoice("Channel To Analyse", channelOptions, prefs.get("channel", "1"));
+            gd.addChoice("Z Projection Method:", zProjOptions, prefs.get("zProjection","Average Intensity"));
             gd.setInsets(0, inset, 0);
             gd.addCheckbox("Save Segmented Images", prefs.getBoolean("saveImages", true));
             gd.setInsets(0, inset, 0);
@@ -130,6 +142,15 @@ public class SettingsGUI {
                 outputDirectory = outputDirectory + "/";
             }
             prefs.put("outputFolder", outputDirectory);
+            calibration = gd.getNextNumber();
+            prefs.putDouble("calibration", calibration);
+            nChannels=Integer.parseInt(gd.getNextChoice());
+            prefs.put("nChannels", Integer.toString(nChannels));          
+            channel=Integer.parseInt(gd.getNextChoice());
+            prefs.put("channel", Integer.toString(channel));   
+            String zProjString = gd.getNextChoice();
+            zProjection=Arrays.asList(zProjOptions).indexOf(zProjString);
+            prefs.put("zProjection", zProjString);
             saveResultImages = gd.getNextBoolean();
             prefs.putBoolean("saveImages", saveResultImages);
             showResultImages = gd.getNextBoolean();
@@ -172,6 +193,10 @@ public class SettingsGUI {
             gd.addMessage("General:", new Font(null, Font.BOLD, 12));
             gd.addDirectoryField("Choose Image Folder: ", prefs.get("imageFolder", ""), 12);
             gd.addDirectoryField("Choose Output Folder: ", prefs.get("outputFolder", ""), 12);
+            gd.addNumericField("Calibration", prefs.getDouble("calibration", 0.19), 5, 10, "µm/px");
+            gd.addChoice("Number Channels",channelOptions, prefs.get("nChannels","1"));
+            gd.addChoice("Channel To Analyse", channelOptions, prefs.get("channel", "1"));
+            gd.addChoice("Z Projection Method:", zProjOptions, prefs.get("zProjection","Average Intensity"));
             gd.setInsets(0, inset, 0);
             gd.addCheckbox("Save Cropped Nuclei", prefs.getBoolean("saveCroppedNuclei", true));
 
@@ -208,6 +233,15 @@ public class SettingsGUI {
                 outputDirectory = outputDirectory + "/";
             }
             prefs.put("outputFolder", outputDirectory);
+            calibration = gd.getNextNumber();
+            prefs.putDouble("calibration", calibration);
+            nChannels=Integer.parseInt(gd.getNextChoice());
+            prefs.put("nChannels", Integer.toString(nChannels));          
+            channel=Integer.parseInt(gd.getNextChoice());
+            prefs.put("channel", Integer.toString(channel));  
+            String zProjString = gd.getNextChoice();
+            zProjection=Arrays.asList(zProjOptions).indexOf(zProjString);
+            prefs.put("zProjection", zProjString);
             saveCroppedNuclei = gd.getNextBoolean();
             prefs.putBoolean("saveCroppedNuclei", saveCroppedNuclei);
 
@@ -246,6 +280,11 @@ public class SettingsGUI {
             gd.addMessage("General:", new Font(null, Font.BOLD, 12));
             gd.addDirectoryField("Choose Image Folder: ", prefs.get("imageFolder", ""), 12);
             gd.addDirectoryField("Choose Output Folder: ", prefs.get("outputFolder", ""), 12);
+            gd.addNumericField("Calibration", prefs.getDouble("calibration", 0.19), 5, 10, "µm/px");
+            gd.addChoice("Number Channels",channelOptions, prefs.get("nChannels","1"));
+            gd.addChoice("Channel To Analyse", channelOptions, prefs.get("channel", "1"));
+            gd.addChoice("Z Projection Method:", zProjOptions, prefs.get("zProjection","Average Intensity"));
+            
             gd.setInsets(0, inset, 0);
             gd.addCheckbox("Generate Positive Control", prefs.getBoolean("posCtrl", true));
             gd.addDirectoryField("Ground truth Directory 0", prefs.get("GT0", ""), 12);
@@ -282,12 +321,22 @@ public class SettingsGUI {
             if (inputDirectory.charAt(inputDirectory.length() - 1) != '/') {
                 inputDirectory = inputDirectory + "/";
             }
-            prefs.put("imageFolder", inputDirectory);
             outputDirectory = gd.getNextString();
             if (outputDirectory.charAt(outputDirectory.length() - 1) != '/') {
                 outputDirectory = outputDirectory + "/";
             }
             prefs.put("outputFolder", outputDirectory);
+            prefs.put("imageFolder", inputDirectory);
+            calibration = gd.getNextNumber();
+            prefs.putDouble("calibration", calibration);
+            nChannels=Integer.parseInt(gd.getNextChoice());
+            prefs.put("nChannels", Integer.toString(nChannels));          
+            channel=Integer.parseInt(gd.getNextChoice());
+            prefs.put("channel", Integer.toString(channel));   
+            String zProjString = gd.getNextChoice();
+            zProjection=Arrays.asList(zProjOptions).indexOf(zProjString);
+            prefs.put("zProjection", zProjString);
+            
             posCtrl = gd.getNextBoolean();
             prefs.putBoolean("posCtrl", posCtrl);
 
@@ -393,6 +442,22 @@ public class SettingsGUI {
 
     public String getInputDirectory() {
         return inputDirectory;
+    }
+    
+    public double getCalibration(){
+        return calibration;
+    }
+    
+    public int getNChannels(){
+        return nChannels;
+    }
+    
+    public int getChannel(){
+        return channel;
+    }
+    
+    public int getZProjection(){
+        return zProjection;
     }
 
     public String getOutputDirectory() {

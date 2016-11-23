@@ -31,17 +31,25 @@ import ij.gui.Overlay;
 import ij.gui.Toolbar;
 import ij.io.RoiDecoder;
 import ij.measure.Calibration;
+import ij.plugin.Duplicator;
 import ij.plugin.MacroInstaller;
 import ij.plugin.PlugIn;
+import ij.plugin.ZProjector;
 import ij.plugin.frame.RoiManager;
 import ij.process.AutoThresholder;
 import ij.process.ImageProcessor;
+import ij.process.LUT;
+import java.awt.Color;
 import java.awt.event.KeyEvent;
 
 public class BLEND_Plugin implements PlugIn {
 
     ArrayList<String> GTDirectory;
     String inputDirectory;
+    double calibration;
+    int channel;
+    int nChannels;
+    int zProjection;
     String outputDirectory;
     String roiListDirectory;
 
@@ -100,10 +108,39 @@ public class BLEND_Plugin implements PlugIn {
             //Loop over every image -> ImagePlus (Imageprocessor + metadata) -> Segmentation -> RoiArray -> RoiManager
             for (int imagesInArray = 0; imagesInArray < imageArray.size(); imagesInArray++) {
                 IJ.log("Segmenting image: " + (imagesInArray + 1) + "/" + imageArray.size() + " ...");
-                ImagePlus imp = IJ.openImage(inputDirectory + imageArray.get(imagesInArray));
+                ImagePlus impStack = IJ.openImage(inputDirectory + imageArray.get(imagesInArray));
+                int[] dim = impStack.getDimensions();
+                impWidth = dim[0];
+                impHeight = dim[1];
+                Duplicator dup = new Duplicator();
+                ImagePlus imp = new ImagePlus();
+
+                if (!impStack.isHyperStack()) {
+                    if (nChannels != impStack.getDimensions()[2]) {
+                        imp = dup.run(impStack, 1, 1, channel, channel, 1, 1);
+                    } else {
+                        imp = dup.run(impStack, channel, channel, 1, impStack.getNSlices(), 1, 1);
+                    }
+                } else {
+                    imp = dup.run(impStack, channel, channel, 1, impStack.getNSlices(), 1, 1);
+                    ZProjector zproj = new ZProjector(imp);
+                    zproj.setMethod(zProjection);
+                    zproj.doProjection();
+                    imp = zproj.getProjection();
+                }
+
+                Calibration cal = new Calibration(imp);
+                cal.pixelWidth = calibration;
+                cal.pixelHeight = calibration;
+                cal.pixelDepth = calibration;
+                cal.setUnit("µm");
+                imp.setCalibration(cal);
+                imp.setLut(LUT.createLutFromColor(Color.lightGray));
+                imp.setTitle(impStack.getTitle());
+
                 SegmentationObject.exec(imp, dilationMicron, rangeEdgeMicron, profileWatershedMicron);
                 Nucleus[] nuclei = SegmentationObject.getNuclei();
-                if (nuclei!=null) {
+                if (nuclei != null) {
                     RoiManager rm = new RoiManager(false);
                     for (int i = 0; i < nuclei.length; i++) {
                         rm.addRoi(nuclei[i].roiNucleus);
@@ -138,7 +175,7 @@ public class BLEND_Plugin implements PlugIn {
             IJ.log("-----------------------------------");
             String folder = createFolder();
             Segmentation SegmentationObject = new Segmentation(blackBackground, backgroundSubtraction, sizeRollingBall, indexFilter, radiusFilter, twoPass, globalThresholdMethod, localThresholdMethod, refinement, watershed, minArea);
-            SupervisedClassification SC = new SupervisedClassification(SegmentationObject, dilationMicron, rangeEdgeMicron, profileWatershedMicron, inputDirectory, folder, saveCroppedNuclei);
+            SupervisedClassification SC = new SupervisedClassification(SegmentationObject, calibration, nChannels, channel, zProjection, dilationMicron, rangeEdgeMicron, profileWatershedMicron, inputDirectory, folder, saveCroppedNuclei);
             SC.exec();
             IJ.log("-----------------------------------");
             IJ.log("BLEND - Functionality: Segmentation - END");
@@ -177,15 +214,35 @@ public class BLEND_Plugin implements PlugIn {
                             IJ.log("Global: " + globalThresholdMethod + " - Local: " + localThresholdMethod);
                             Segmentation SegmentationObject = new Segmentation(blackBackground, backgroundSubtraction, sizeRollingBall, indexFilter, radiusFilter, twoPass, globalThresholdMethod, localThresholdMethod, refinement, watershed, minArea);
                             for (int imagesInArray = 0; imagesInArray < imageArray.size(); imagesInArray++) {
-                                ImagePlus imp = IJ.openImage(inputDirectory + imageArray.get(imagesInArray));
-                                Calibration cal = imp.getLocalCalibration();
-                                if (!(cal.getUnit().equals("micron") || cal.getUnit().equals("µm"))) {
-                                    GenericDialogPlus gd = new GenericDialogPlus("BLEND");
-                                    gd.addMessage("Make sure the calibration of the image is in micron", null);
-                                    gd.showDialog();
-                                    WindowManager.closeAllWindows();
-                                    throw new RuntimeException(Macro.MACRO_CANCELED);
+
+                                ImagePlus impStack = IJ.openImage(inputDirectory + imageArray.get(imagesInArray));
+                                int[] dim = impStack.getDimensions();
+                                impWidth = dim[0];
+                                impHeight = dim[1];
+                                Duplicator dup = new Duplicator();
+                                ImagePlus imp = new ImagePlus();
+                                if (!impStack.isHyperStack()) {
+                                    if (nChannels != impStack.getDimensions()[2]) {
+                                        imp = dup.run(impStack, 1, 1, channel, channel, 1, 1);
+                                    } else {
+                                        imp = dup.run(impStack, channel, channel, 1, impStack.getNSlices(), 1, 1);
+                                    }
+                                } else {
+                                    imp = dup.run(impStack, channel, channel, 1, impStack.getNSlices(), 1, 1);
+                                    ZProjector zproj = new ZProjector(imp);
+                                    zproj.setMethod(zProjection);
+                                    zproj.doProjection();
+                                    imp = zproj.getProjection();
                                 }
+                                Calibration cal = new Calibration(imp);
+                                cal.pixelWidth = calibration;
+                                cal.pixelHeight = calibration;
+                                cal.pixelDepth = calibration;
+                                cal.setUnit("µm");
+                                imp.setCalibration(cal);
+                                imp.setLut(LUT.createLutFromColor(Color.lightGray));
+                                imp.setTitle(impStack.getTitle());
+
                                 SegmentationObject.exec(imp, dilationMicron, rangeEdgeMicron, profileWatershedMicron);
                                 Nucleus[] nuclei = SegmentationObject.getNuclei();
                                 if (nuclei != null) {
@@ -210,15 +267,31 @@ public class BLEND_Plugin implements PlugIn {
                         IJ.log("Global: " + globalThresholdMethod + " - Local: " + localThresholdMethod);
                         Segmentation SegmentationObject = new Segmentation(blackBackground, backgroundSubtraction, sizeRollingBall, indexFilter, radiusFilter, twoPass, globalThresholdMethod, localThresholdMethod, refinement, watershed, minArea);
                         for (int imagesInArray = 0; imagesInArray < imageArray.size(); imagesInArray++) {
-                            ImagePlus imp = IJ.openImage(inputDirectory + imageArray.get(imagesInArray));
-                            Calibration cal = imp.getLocalCalibration();
-                            if (!(cal.getUnit().equals("micron") || cal.getUnit().equals("µm"))) {
-                                GenericDialogPlus gd = new GenericDialogPlus("BLEND");
-                                gd.addMessage("Make sure the calibration of the image is in micron", null);
-                                gd.showDialog();
-                                WindowManager.closeAllWindows();
-                                throw new RuntimeException(Macro.MACRO_CANCELED);
+                            ImagePlus impStack = IJ.openImage(inputDirectory + imageArray.get(imagesInArray));
+                            int[] dim = impStack.getDimensions();
+                            impWidth = dim[0];
+                            impHeight = dim[1];
+                            Duplicator dup = new Duplicator();
+                            ImagePlus imp = new ImagePlus();
+                            if (!impStack.isHyperStack()) {
+                                if (nChannels != impStack.getDimensions()[2]) {
+                                    imp = dup.run(impStack, 1, 1, channel, channel, 1, 1);
+                                } else {
+                                    imp = dup.run(impStack, channel, channel, 1, impStack.getNSlices(), 1, 1);
+                                }
+                            } else {
+                                imp = dup.run(impStack, channel, channel, 1, impStack.getNSlices(), 1, 1);
+                                ZProjector zproj = new ZProjector(imp);
+                                zproj.setMethod(zProjection);
+                                zproj.doProjection();
+                                imp = zproj.getProjection();
                             }
+                            Calibration cal = new Calibration(imp);
+                            cal.pixelWidth = calibration;
+                            cal.pixelHeight = calibration;
+                            cal.pixelDepth = calibration;
+                            cal.setUnit("µm");
+                            imp.setCalibration(cal);
                             SegmentationObject.exec(imp, dilationMicron, rangeEdgeMicron, profileWatershedMicron);
                             Nucleus[] nuclei = SegmentationObject.getNuclei();
                             if (nuclei != null) {
@@ -241,18 +314,36 @@ public class BLEND_Plugin implements PlugIn {
                     ArrayList<Nucleus[]> listRoiArray = new ArrayList<Nucleus[]>();
                     Segmentation SegmentationObject = new Segmentation(blackBackground, backgroundSubtraction, sizeRollingBall, indexFilter, radiusFilter, twoPass, globalThresholdMethod, localThresholdMethod, refinement, watershed, minArea);
                     for (int imagesInArray = 0; imagesInArray < imageArray.size(); imagesInArray++) {
-                        ImagePlus imp = IJ.openImage(inputDirectory + imageArray.get(imagesInArray));
-                        Calibration cal = imp.getLocalCalibration();
-                        if (!(cal.getUnit().equals("micron") || cal.getUnit().equals("µm"))) {
-                            GenericDialogPlus gd = new GenericDialogPlus("BLEND");
-                            gd.addMessage("Make sure the calibration of the image is in micron", null);
-                            gd.showDialog();
-                            WindowManager.closeAllWindows();
-                            throw new RuntimeException(Macro.MACRO_CANCELED);
+                        ImagePlus impStack = IJ.openImage(inputDirectory + imageArray.get(imagesInArray));
+                        int[] dim = impStack.getDimensions();
+                        impWidth = dim[0];
+                        impHeight = dim[1];
+                        Duplicator dup = new Duplicator();
+                        ImagePlus imp = new ImagePlus();
+                        if (!impStack.isHyperStack()) {
+                            if (nChannels != impStack.getDimensions()[2]) {
+                                imp = dup.run(impStack, 1, 1, channel, channel, 1, 1);
+                            } else {
+                                imp = dup.run(impStack, channel, channel, 1, impStack.getNSlices(), 1, 1);
+                            }
+                        } else {
+                            imp = dup.run(impStack, channel, channel, 1, impStack.getNSlices(), 1, 1);
+                            ZProjector zproj = new ZProjector(imp);
+                            zproj.setMethod(zProjection);
+                            zproj.doProjection();
+                            imp = zproj.getProjection();
                         }
+                        Calibration cal = new Calibration(imp);
+                        cal.pixelWidth = calibration;
+                        cal.pixelHeight = calibration;
+                        cal.pixelDepth = calibration;
+                        cal.setUnit("µm");
+                        imp.setCalibration(cal);
+                        imp.setLut(LUT.createLutFromColor(Color.lightGray));
+                        imp.setTitle(impStack.getTitle());
                         SegmentationObject.exec(imp, dilationMicron, rangeEdgeMicron, profileWatershedMicron);
                         Nucleus[] nuclei = SegmentationObject.getNuclei();
-                        if (nuclei!= null) {
+                        if (nuclei != null) {
                             RoiManager rm = new RoiManager(false);
                             for (int i = 0; i < nuclei.length; i++) {
                                 rm.addRoi(nuclei[i].roiNucleus);
@@ -270,15 +361,33 @@ public class BLEND_Plugin implements PlugIn {
                     ArrayList<Nucleus[]> listNuclei = new ArrayList<Nucleus[]>();
                     Segmentation SegmentationObject = new Segmentation(blackBackground, backgroundSubtraction, sizeRollingBall, indexFilter, radiusFilter, twoPass, globalThresholdMethod, localThresholdMethod, refinement, watershed, minArea);
                     for (int imagesInArray = 0; imagesInArray < imageArray.size(); imagesInArray++) {
-                        ImagePlus imp = IJ.openImage(inputDirectory + imageArray.get(imagesInArray));
-                        Calibration cal = imp.getLocalCalibration();
-                        if (!(cal.getUnit().equals("micron") || cal.getUnit().equals("µm"))) {
-                            GenericDialogPlus gd = new GenericDialogPlus("BLEND");
-                            gd.addMessage("Make sure the calibration of the image is in micron", null);
-                            gd.showDialog();
-                            WindowManager.closeAllWindows();
-                            throw new RuntimeException(Macro.MACRO_CANCELED);
+                        ImagePlus impStack = IJ.openImage(inputDirectory + imageArray.get(imagesInArray));
+                        int[] dim = impStack.getDimensions();
+                        impWidth = dim[0];
+                        impHeight = dim[1];
+                        Duplicator dup = new Duplicator();
+                        ImagePlus imp = new ImagePlus();
+                        if (!impStack.isHyperStack()) {
+                            if (nChannels != impStack.getDimensions()[2]) {
+                                imp = dup.run(impStack, 1, 1, channel, channel, 1, 1);
+                            } else {
+                                imp = dup.run(impStack, channel, channel, 1, impStack.getNSlices(), 1, 1);
+                            }
+                        } else {
+                            imp = dup.run(impStack, channel, channel, 1, impStack.getNSlices(), 1, 1);
+                            ZProjector zproj = new ZProjector(imp);
+                            zproj.setMethod(zProjection);
+                            zproj.doProjection();
+                            imp = zproj.getProjection();
                         }
+                        Calibration cal = new Calibration(imp);
+                        cal.pixelWidth = calibration;
+                        cal.pixelHeight = calibration;
+                        cal.pixelDepth = calibration;
+                        cal.setUnit("µm");
+                        imp.setCalibration(cal);
+                        imp.setLut(LUT.createLutFromColor(Color.lightGray));
+                        imp.setTitle(impStack.getTitle());
                         SegmentationObject.exec(imp, dilationMicron, rangeEdgeMicron, profileWatershedMicron);
                         Nucleus[] nuclei = SegmentationObject.getNuclei();
                         if (nuclei != null) {
@@ -324,11 +433,10 @@ public class BLEND_Plugin implements PlugIn {
             }
             RoiListComparison RLC = new RoiListComparison(listRoiMaskGT, blackBackground, impWidth, impHeight, listNuclei, outputDirectory, outputName, fileNames, "", "");
             RLC.exec();
+            IJ.log("-----------------------------------");
+            IJ.log("BLEND - Functionality: Comparison - END");
+            IJ.log("-----------------------------------");
         }
-
-        IJ.log("-----------------------------------");
-        IJ.log("BLEND - Functionality: Comparison - END");
-        IJ.log("-----------------------------------");
     }
 
     public void FileWrite(String outputDirectory, String fileName, String text) {
@@ -346,7 +454,6 @@ public class BLEND_Plugin implements PlugIn {
 
     private void extractFeatures(Nucleus[] nuclei, ImagePlus imp, String newFolder) {
         IJ.log("Extracting features ...");
-        Calibration cal = imp.getLocalCalibration();
         for (int i = 0; i < nuclei.length; i++) {
             Nucleus nucleus = nuclei[i];
             Roi roi = nucleus.roiNucleus;
@@ -454,6 +561,10 @@ public class BLEND_Plugin implements PlugIn {
         GUI.exec();
         globalThresholdMethod = GUI.getGlobalThresholdMethod();
         inputDirectory = GUI.getInputDirectory();
+        calibration = GUI.getCalibration();
+        channel = GUI.getChannel();
+        nChannels = GUI.getNChannels();
+        zProjection = GUI.getZProjection();
         localThresholdMethod = GUI.getLocalThresholdMethod();
         outputDirectory = GUI.getOutputDirectory();
         functionality = GUI.getFunctionality();

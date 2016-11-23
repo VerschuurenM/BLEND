@@ -46,10 +46,10 @@ public class AssignClass {
         this.path = folder + filename;
     }
 
-    public ArrayList<String> exec(String[] imageArray, Nucleus[] nuclei, int imageIndex, int roiIndex, ArrayList<String> text, String label) {
+    //public ArrayList<String> exec(String[] imageArray, Nucleus[] nuclei, int imageIndex, int roiIndex, ArrayList<String> text, String label) {
+    public ArrayList<String> exec(ImagePlus imp, Nucleus[] nuclei, int roiIndex, ArrayList<String> text, String label) {
         textList = text;
-
-        ImagePlus imp = IJ.openImage(inputDirectory + imageArray[imageIndex]);
+        
         Nucleus nucleus = nuclei[roiIndex];
         Roi roi = nucleus.roiNucleus;
         String imageTitle = imp.getTitle();
@@ -68,21 +68,21 @@ public class AssignClass {
         String FILE_HEADER = "";
 
         if (textList.size() == 0) {
-                Set keys = nuclei[0].index.entrySet();
+                Set keys = nucleus.index.entrySet();
                 Iterator i = keys.iterator();
                 while (i.hasNext()) {
                     Map.Entry me = (Map.Entry) i.next();
                     FILE_HEADER = FILE_HEADER.concat((String) me.getKey());
                     FILE_HEADER = FILE_HEADER.concat(COMMA_DELIMITER);
                 }
-                keys = nuclei[0].morpho.entrySet();
+                keys = nucleus.morpho.entrySet();
                 i = keys.iterator();
                 while (i.hasNext()) {
                     Map.Entry me = (Map.Entry) i.next();
                     FILE_HEADER = FILE_HEADER.concat((String) me.getKey());
                     FILE_HEADER = FILE_HEADER.concat(COMMA_DELIMITER);
                 }
-                keys = nuclei[0].textural.entrySet();
+                keys = nucleus.textural.entrySet();
                 i = keys.iterator();
                 while (i.hasNext()) {
                     Map.Entry me = (Map.Entry) i.next();

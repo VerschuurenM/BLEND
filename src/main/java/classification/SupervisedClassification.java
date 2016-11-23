@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-
 package classification;
 
 import GUI.GenericDialogPlus;
@@ -27,6 +26,13 @@ import ij.measure.Calibration;
 import ij.plugin.frame.RoiManager;
 import ij.io.OpenDialog;
 import ij.WindowManager;
+import ij.measure.Measurements;
+import ij.plugin.ContrastEnhancer;
+import ij.plugin.Duplicator;
+import ij.plugin.ZProjector;
+import ij.process.ImageProcessor;
+import ij.process.ImageStatistics;
+import ij.process.LUT;
 import java.awt.*;
 import java.awt.Dimension;
 import java.awt.Toolkit;
@@ -51,11 +57,16 @@ import weka.classifiers.functions.SMO;
 import weka.classifiers.meta.FilteredClassifier;
 import weka.filters.unsupervised.attribute.Remove;
 import weka.classifiers.functions.supportVector.*;
+import weka.core.Statistics;
 
 public class SupervisedClassification {
 
     //General
     String inputDirectory;
+    double calibration;
+    int nChannels;
+    int channel;
+    int zProjection;
     String folder;
     String[] imageArray;
     boolean saveCroppedNuclei;
@@ -116,32 +127,26 @@ public class SupervisedClassification {
     SMO svm = new SMO();
     FilteredClassifier fc = new FilteredClassifier();
 
-    public SupervisedClassification(Segmentation SegmentationObject,double dilationMicron, double rangeEdgeMicron, double profileWatershedMicron, String inputDirectory, String folder, boolean saveCroppedNuclei) {
+    public SupervisedClassification(Segmentation SegmentationObject, double calibration, int nChannels, int channel, int zProjection, double dilationMicron, double rangeEdgeMicron, double profileWatershedMicron, String inputDirectory, String folder, boolean saveCroppedNuclei) {
         this.SegmentationObject = SegmentationObject;
+        this.calibration = calibration;
+        this.nChannels = nChannels;
+        this.channel = channel;
+        this.zProjection = zProjection;
         this.dilationMicron = dilationMicron;
         this.rangeEdgeMicron = rangeEdgeMicron;
         this.profileWatershedMicron = profileWatershedMicron;
         this.inputDirectory = inputDirectory;
         this.folder = folder;
         this.saveCroppedNuclei = saveCroppedNuclei;
-       this.pathFeatures = folder + fileName;
+        this.pathFeatures = folder + fileName;
     }
 
     public void exec() {
-        //Set up rf classifier
-        if (rfUsed == true) {
-            Remove rem = new Remove();
-            rem.setAttributeIndices("1");
-            rf = new RandomForest();
-            fc.setFilter(rem);
-            fc.setClassifier(rf);
-        } else {
-            //Set up svm classifier
-            Remove rem = new Remove();
-            rem.setAttributeIndices("1");;
-            fc.setFilter(rem);
-            fc.setClassifier(svm);
-        }
+        //Set up classifier
+        Remove rem = new Remove();
+        rem.setAttributeIndices("1");
+        fc.setFilter(rem);
 
         //Set-up GUI
         JFrame GUI = GUI();
@@ -152,6 +157,7 @@ public class SupervisedClassification {
 
         //Get Input Images and loadProgress
         ArrayList<String> imageList = getImageArray(inputDirectory);
+        Collections.shuffle(imageList, new Random(5));
         imageArray = new String[imageList.size()];
         imageList.toArray(imageArray);
         if (imageArray == null) {
@@ -189,17 +195,34 @@ public class SupervisedClassification {
         for (imageIndex = beginImageIndex; imageIndex < imageArray.length; imageIndex++) {
             //Segment Image and save roiList
             IJ.log("Segmenting Image: " + (imageIndex + 1) + "/" + imageArray.length + " ...");
-            impGUI = IJ.openImage(inputDirectory + imageArray[imageIndex]);
-            cal = impGUI.getCalibration();
-            if (!(cal.getUnit().equals("micron") || cal.getUnit().equals("µm"))) {
-                GenericDialogPlus gd = new GenericDialogPlus("BLEND");
-                gd.addMessage("Make sure the calibration of the image is in micron", null);
-                gd.showDialog();
-                WindowManager.closeAllWindows();
-                throw new RuntimeException(Macro.MACRO_CANCELED);
+
+            ImagePlus impStack = IJ.openImage(inputDirectory + imageArray[imageIndex]);
+            Duplicator dup = new Duplicator();
+            impGUI = new ImagePlus();
+            if (!impStack.isHyperStack()) {
+                if (nChannels != impStack.getDimensions()[2]) {
+                    impGUI = dup.run(impStack, 1, 1, channel, channel, 1, 1);
+                } else {
+                    impGUI = dup.run(impStack, channel, channel, 1, impStack.getNSlices(), 1, 1);
+                }
+            } else {
+                impGUI = dup.run(impStack, channel, channel, 1, impStack.getNSlices(), 1, 1);
+                ZProjector zproj = new ZProjector(impGUI);
+                zproj.setMethod(zProjection);
+                zproj.doProjection();
+                impGUI = zproj.getProjection();
             }
+            cal = new Calibration(impGUI);
+            cal.pixelWidth = calibration;
+            cal.pixelHeight = calibration;
+            cal.pixelDepth = calibration;
+            cal.setUnit("µm");
+            impGUI.setCalibration(cal);
+            impGUI.setLut(LUT.createLutFromColor(Color.lightGray));
+            impGUI.setTitle(impStack.getTitle());
+
             dim = (int) (50.0 / cal.pixelWidth);
-      
+
             SegmentationObject.exec(impGUI, dilationMicron, rangeEdgeMicron, profileWatershedMicron);
             String impTitle = impGUI.getTitle();
             nuclei = SegmentationObject.getNuclei();
@@ -223,12 +246,30 @@ public class SupervisedClassification {
                 IJ.log("Classify Roi: " + (nucleusIndex + 1) + "/" + nuclei.length + " ...");
                 //Classify nucleus
                 impGUI.setRoi(nuclei[nucleusIndex].roiNucleus, true);
-                impGUI.copy();
-                impCrop = IJ.createImage("Crop", "8-bit Black", dim, dim, 1);
+                
+                                impCrop = IJ.createImage("Crop", dim, dim, 1, impGUI.getBitDepth());
                 impCrop.setCalibration(cal);
-                impCrop.paste();
+                Rectangle r = new Rectangle(nuclei[nucleusIndex].roiNucleus.getBounds());
+                ShapeRoi dupRoi = new ShapeRoi(nuclei[nucleusIndex].roiNucleus);
+                int newI = (dim - r.width) / 2;
+                int newJ = (dim - r.height) / 2;
+                for (int i = r.x; i < (r.x + r.width); i++) {
+                    for (int j = r.y; j < (r.y + r.height); j++) {
+                        int pix = impGUI.getProcessor().getPixel(i, j);
+                        impCrop.getProcessor().putPixel(newI, newJ, pix);
+                        impCrop.show();
+                        newJ++;
+                    }
+                    newJ = (dim - r.height) / 2;
+                    newI++;
+                }
+                impCrop.deleteRoi();
+                dupRoi.setLocation((dim - r.width) / 2, (dim - r.height) / 2);
+                impCrop.getProcessor().fillOutside(dupRoi);
+                IJ.run(impCrop, "Enhance Contrast", "saturated=0.5");     
+                impCrop.setRoi(dupRoi);
                 ImageWindow.setNextLocation(screenSize.width, screenSize.height);
-                impCrop.show();
+                impCrop.show();              
 
                 //Enable training after 10 classified nuclei
                 if (textList.size() > 10) {
@@ -312,16 +353,31 @@ public class SupervisedClassification {
             IJ.log("Image: " + (imageIndex + 1) + "/" + imageArray.length);
             //Only open image and segment if it is not already open
             if (classifierLoaded || imageIndex != beginImageIndex) {
-                impGUI = IJ.openImage(inputDirectory + imageArray[imageIndex]);
-                String impTitle = impGUI.getTitle();
-                cal = impGUI.getLocalCalibration();
-                if (!(cal.getUnit().equals("micron") || cal.getUnit().equals("µm"))) {
-                    GenericDialogPlus gd = new GenericDialogPlus("BLEND");
-                    gd.addMessage("Make sure the calibration of the image is in micron", null);
-                    gd.showDialog();
-                    WindowManager.closeAllWindows();
-                    throw new RuntimeException(Macro.MACRO_CANCELED);
+                ImagePlus impStack = IJ.openImage(inputDirectory + imageArray[imageIndex]);
+                Duplicator dup = new Duplicator();
+                impGUI = new ImagePlus();
+                if (!impStack.isHyperStack()) {
+                    if (nChannels != impStack.getDimensions()[2]) {
+                        impGUI = dup.run(impStack, 1, 1, channel, channel, 1, 1);
+                    } else {
+                        impGUI = dup.run(impStack, channel, channel, 1, impStack.getNSlices(), 1, 1);
+                    }
+                } else {
+                    impGUI = dup.run(impStack, channel, channel, 1, impStack.getNSlices(), 1, 1);
+                    ZProjector zproj = new ZProjector(impGUI);
+                    zproj.setMethod(zProjection);
+                    zproj.doProjection();
+                    impGUI = zproj.getProjection();
                 }
+                cal = new Calibration(impGUI);
+                cal.pixelWidth = calibration;
+                cal.pixelHeight = calibration;
+                cal.pixelDepth = calibration;
+                cal.setUnit("µm");
+                impGUI.setCalibration(cal);
+                impGUI.setLut(LUT.createLutFromColor(Color.lightGray));
+                impGUI.setTitle(impStack.getTitle());
+
                 SegmentationObject.exec(impGUI, dilationMicron, rangeEdgeMicron, profileWatershedMicron);
                 nuclei = SegmentationObject.getNuclei();
                 if (nuclei.length != 0) {
@@ -371,7 +427,8 @@ public class SupervisedClassification {
 
                 //Predict Class
                 PredictClass PC = new PredictClass(folder, inputDirectory);
-                predictedClass = PC.exec(fc, imageArray, imageIndex, nuclei[nucleusIndex], classLabels);
+                //predictedClass = PC.exec(fc, imageArray, imageIndex, nuclei[nucleusIndex], classLabels);
+                predictedClass = PC.exec(fc, impGUI, nuclei[nucleusIndex], classLabels);
                 indexClass = Arrays.asList(classLabels).indexOf(predictedClass);
                 predictedClassLabel.setText(predictedClass);
                 predictedClassLabel.setForeground(colors[indexClass]);
@@ -380,12 +437,32 @@ public class SupervisedClassification {
 
                 //Classify nucleus
                 impGUI.setRoi(nuclei[nucleusIndex].roiNucleus, true);
-                impGUI.copy();
-                impCrop = IJ.createImage("Crop", "8-bit Black", dim, dim, 1);
+                
+                impCrop = IJ.createImage("Crop", dim, dim, 1, impGUI.getBitDepth());
                 impCrop.setCalibration(cal);
-                impCrop.paste();
+                Rectangle r = new Rectangle(nuclei[nucleusIndex].roiNucleus.getBounds());
+                ShapeRoi dupRoi = new ShapeRoi(nuclei[nucleusIndex].roiNucleus);
+                int newI = (dim - r.width) / 2;
+                int newJ = (dim - r.height) / 2;
+                for (int i = r.x; i < (r.x + r.width); i++) {
+                    for (int j = r.y; j < (r.y + r.height); j++) {
+                        int pix = impGUI.getProcessor().getPixel(i, j);
+                        impCrop.getProcessor().putPixel(newI, newJ, pix);
+                        impCrop.show();
+                        newJ++;
+                    }
+                    newJ = (dim - r.height) / 2;
+                    newI++;
+                }
+                impCrop.deleteRoi();
+                dupRoi.setLocation((dim - r.width) / 2, (dim - r.height) / 2);
+                impCrop.getProcessor().fillOutside(dupRoi);
+                IJ.run(impCrop, "Enhance Contrast", "saturated=0.5");     
+                dupRoi.setStrokeColor(colors[indexClass]);
+                impCrop.setRoi(dupRoi);
                 ImageWindow.setNextLocation(screenSize.width, screenSize.height);
                 impCrop.show();
+                
                 while (waitForUserInput == true) {
                     try {
                         Thread.sleep(100);
@@ -405,7 +482,9 @@ public class SupervisedClassification {
                     break;
                 } else if (applyClassifier) {
                     AssignClass AC = new AssignClass(folder, saveCroppedNuclei, inputDirectory);
-                    textList = AC.exec(imageArray, nuclei, imageIndex, nucleusIndex, textList, classLabels[indexClass]);
+                    //textList = AC.exec(imageArray, nuclei, imageIndex, nucleusIndex, textList, classLabels[indexClass]);
+                    impGUI.deleteRoi();
+                    textList = AC.exec(impGUI.duplicate(), nuclei, nucleusIndex, textList, classLabels[indexClass]);
                     nuclei[nucleusIndex].roiNucleus.setStrokeColor(colors[indexClass]);
                     overlay.add(nuclei[nucleusIndex].roiNucleus);
                     impGUI.setOverlay(overlay);
@@ -438,6 +517,7 @@ public class SupervisedClassification {
                 boolean GUICanceled = guiTypeClassifier();
                 if (rfUsed) {
                     GUICanceled = guiRf();
+                    IJ.log("TEST: " + String.valueOf(GUICanceled));
                 } else {
                     GUICanceled = guiSvm();
                 }
@@ -460,13 +540,13 @@ public class SupervisedClassification {
 
     public JFrame GUI() {
         //Setup Buttons
-        addClassButton = new JButton("Create new class");
+        addClassButton = new JButton("Create New Class");
         addClassButton.setToolTipText("Add one more label to mark different areas");
         labelButtons = new JButton[classLabels.length];
-        trainButton = new JButton("Train classifier");
+        trainButton = new JButton("Train Classifier");
         trainButton.setToolTipText("Start training the classifier");
         trainButton.setEnabled(false);
-        applyButton = new JButton("Apply classifier ");
+        applyButton = new JButton("Apply Classifier ");
         applyButton.setToolTipText("Apply classifier on full image set");
         applyButton.setEnabled(false);
         saveClassifierButton = new JButton("Save Classifier");
@@ -647,7 +727,7 @@ public class SupervisedClassification {
         });
         return win;
     }
-    private ActionListener listener = new ActionListener() {
+    protected ActionListener listener = new ActionListener() {
         public void actionPerformed(final ActionEvent e) {
             // listen to the buttons
             exec.submit(new Runnable() {
@@ -696,7 +776,9 @@ public class SupervisedClassification {
                             if (!canceled) {
                                 //Test classes
                                 PredictClass PCTest = new PredictClass(folder, inputDirectory);
-                                String test = PCTest.exec(fc, imageArray, imageIndex, nuclei[nucleusIndex], classLabels);
+                                //String test = PCTest.exec(fc, imageArray, imageIndex, nuclei[nucleusIndex], classLabels);  
+                                String test = PCTest.exec(fc, impGUI, nuclei[nucleusIndex], classLabels);
+
                                 boolean errorClasses = PCTest.getErrorPredict();
                                 if (errorClasses) {
                                     MessageDialog MD = new MessageDialog(new Frame(), "BLEND", "Defined classes do not correlate with classes used for training the classifier");
@@ -755,16 +837,20 @@ public class SupervisedClassification {
                     } else if (e.getSource() == deleteButton) {
                         boolean delete = false;
 
-                        //Check if result was in resultfile and delete
-                        String temp = textList.get(textList.size() - 1);
-                        int position = temp.indexOf(sep);
-                        String tempImage = temp.substring(0, position);
-                        if (tempImage.equals(imageArray[imageIndex])) {
-                            int position2 = temp.indexOf(sep, position + 1);
-                            int tempRoiIndex = Integer.parseInt(temp.substring(position + 1, position2));
-                            if (tempRoiIndex == nucleusIndex) {
-                                delete = true;
+                        if (textList.size() != 0) {
+                            //Check if result was in resultfile and delete
+                            String temp = textList.get(textList.size() - 1);
+                            int position = temp.indexOf(sep);
+                            String tempImage = temp.substring(0, position);
+                            if (tempImage.equals(imageArray[imageIndex])) {
+                                int position2 = temp.indexOf(sep, position + 1);
+                                int tempRoiIndex = Integer.parseInt(temp.substring(position + 1, position2));
+                                if (tempRoiIndex == nucleusIndex) {
+                                    delete = true;
+                                }
                             }
+                        } else {
+
                         }
                         if (delete == true) {
                             textList.remove(nucleusIndex);
@@ -791,7 +877,9 @@ public class SupervisedClassification {
                     } else if (e.getSource() == correctButton) {
                         //Assign predicted class
                         AssignClass AC = new AssignClass(folder, saveCroppedNuclei, inputDirectory);
-                        textList = AC.exec(imageArray, nuclei, imageIndex, nucleusIndex, textList, classLabels[indexClass]);
+                        //textList = AC.exec(imageArray, nuclei, imageIndex, nucleusIndex, textList, classLabels[indexClass]);
+                        impGUI.deleteRoi();
+                        textList = AC.exec(impGUI.duplicate(), nuclei, nucleusIndex, textList, classLabels[indexClass]);
                         nuclei[nucleusIndex].roiNucleus.setStrokeColor(colors[indexClass]);
                         overlay.add(nuclei[nucleusIndex].roiNucleus);
                         impGUI.setOverlay(overlay);
@@ -813,7 +901,9 @@ public class SupervisedClassification {
                             if (e.getSource() == labelButtons[i]) {
                                 indexClass = i;
                                 AssignClass AC = new AssignClass(folder, saveCroppedNuclei, inputDirectory);
-                                textList = AC.exec(imageArray, nuclei, imageIndex, nucleusIndex, textList, classLabels[indexClass]);
+                                //textList = AC.exec(imageArray, nuclei, imageIndex, nucleusIndex, textList, classLabels[indexClass]);
+                                impGUI.deleteRoi();
+                                textList = AC.exec(impGUI.duplicate(), nuclei, nucleusIndex, textList, classLabels[indexClass]);
                                 waitForUserInput = false;
                                 previousButton.setEnabled(true);
                                 nuclei[nucleusIndex].roiNucleus.setStrokeColor(colors[indexClass]);
@@ -1037,14 +1127,12 @@ public class SupervisedClassification {
     public boolean guiRf() {
         boolean cancel = false;
         GenericDialog gd = new GenericDialog("Settings Random Forest");
-        gd.addNumericField("Number of Trees", rf.getNumTrees(), 0);
         gd.addNumericField("Number of features", rf.getNumFeatures(), 0);
         gd.showDialog();
         if (gd.wasCanceled()) {
             System.out.println("PlugIn Cancelled");
             cancel = true;
         } else {
-            rf.setNumTrees((int) gd.getNextNumber());
             rf.setNumFeatures((int) gd.getNextNumber());
             fc.setClassifier(rf);
         }

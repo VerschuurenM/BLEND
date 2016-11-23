@@ -28,7 +28,7 @@ public class RemoveSmallRoi {
 
         Analyzer.setMeasurements(0);
         int measurements = Measurements.AREA;
-        
+                
         for (int i = 0; i < roiList.size(); i++) {
             if(roiList.get(i).getBounds().getWidth()>0 && roiList.get(i).getBounds().getHeight()>0 ){
                 imp.setRoi(roiList.get(i));

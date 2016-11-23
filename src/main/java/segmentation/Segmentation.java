@@ -72,13 +72,6 @@ public class Segmentation {
         if (imp.getProcessor().maxValue() != 0) {
             String impTitle = imp.getTitle();
             Calibration cal = imp.getLocalCalibration();
-            if (!(cal.getUnit().equals("micron") || cal.getUnit().equals("microns") || cal.getUnit().equals("µm"))) {
-                GenericDialogPlus gd = new GenericDialogPlus("BLEND");
-                gd.addMessage("Make sure the calibration of the image is in micron", null);
-                gd.showDialog();
-                WindowManager.closeAllWindows();
-                throw new RuntimeException(Macro.MACRO_CANCELED);
-            }
             int rangeEdge = Math.round((float) (rangeEdgeMicron) / (float) (cal.pixelWidth));
             if (rangeEdge < 4) {
                 rangeEdge = 4;

@@ -58,6 +58,7 @@ public class TrainClassifier {
             System.out.println(data);
         } catch (IOException e) {
             IJ.showMessage("IOException");
+            IJ.log(e.toString());
         } 
         try {
             fc.buildClassifier(data);
