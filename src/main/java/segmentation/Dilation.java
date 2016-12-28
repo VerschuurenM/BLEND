@@ -14,6 +14,7 @@
  */
 package segmentation;
 
+import ij.IJ;
 import ij.ImagePlus;
 import ij.plugin.Duplicator;
 import ij.plugin.ImageCalculator;
@@ -22,9 +23,9 @@ import ij.process.ImageProcessor;
 
 public class Dilation {
 
-    protected ImagePlus exec(ImagePlus impBinary, int dilations, boolean blackBackground) {
+    protected ImagePlus exec(ImagePlus impBinary, int dilations) {
         //Dilate ROIs in Voronoi-cel
-        ImagePlus impVoronoi=voronoi(impBinary, blackBackground);
+        ImagePlus impVoronoi=voronoi(impBinary);
 
         ImagePlus impDilated = new Duplicator().run(impBinary);
         for (int i = 0; i < dilations; i++) {
@@ -38,7 +39,7 @@ public class Dilation {
         return impDilated;
     }
 
-    protected ImagePlus voronoi (ImagePlus imp, boolean blackBackground) {
+    protected ImagePlus voronoi (ImagePlus imp) {
     //Creating an Euclidean Distance Map or EDM = greyscale representation of the distance of every pixel to the nearest foreground pixel= belonging to the segmented nuclei. 
         //The points that are saddle points and located in the background of the globally thresholded image, are points that make up the borders of the regions where the ROI of each nucleus can grow in. 
         //These points can be seen as the "ridges". 
@@ -49,18 +50,14 @@ public class Dilation {
         //Output = BYTE_OVERWRITE
         EDM.setOutputType(0);
 
-        //Depends on settings ImageJ
-        if (blackBackground == false) {
-            impVoronoi.getProcessor().invert();
-        }
-
         //Prepare for processing: String name + imagePlus impVoronoi
         getVoronoi.setup("voronoi", impVoronoi);
         getVoronoi.run(impVoronoi.getProcessor());
 
+        
         //Apply threshold = 0 --> Binary Image
-        impVoronoi.getProcessor().setThreshold(0, Math.pow(2,impVoronoi.getBitDepth()), ImageProcessor.RED_LUT);
-
+        impVoronoi.getProcessor().setThreshold(1, Math.pow(2,impVoronoi.getBitDepth()), ImageProcessor.RED_LUT);
+        IJ.run(impVoronoi, "Make Binary", "");
         //Invert impVoronoi 
         impVoronoi.getProcessor().invert();
         impVoronoi.setTitle("impVoronoi");

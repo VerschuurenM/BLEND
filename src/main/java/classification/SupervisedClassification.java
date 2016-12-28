@@ -152,7 +152,7 @@ public class SupervisedClassification {
         JFrame GUI = GUI();
         GUI.pack();
         Dimension screenSize = new Dimension(Toolkit.getDefaultToolkit().getScreenSize());
-        GUI.setLocation(screenSize.width, 0);
+        GUI.setLocation(screenSize.width*2/3, 0);
         GUI.setVisible(true);
 
         //Get Input Images and loadProgress
@@ -237,7 +237,7 @@ public class SupervisedClassification {
             }
 
             //Show Image
-            ImageWindow.setNextLocation(0, screenSize.height / 2);
+            ImageWindow.setNextLocation(0, screenSize.height *1/3);
             impGUI.setOverlay(overlay);
             impGUI.show();
 
@@ -257,6 +257,7 @@ public class SupervisedClassification {
                     for (int j = r.y; j < (r.y + r.height); j++) {
                         int pix = impGUI.getProcessor().getPixel(i, j);
                         impCrop.getProcessor().putPixel(newI, newJ, pix);
+                        ImageWindow.setNextLocation(screenSize.width*2/3, screenSize.height*2/3);
                         impCrop.show();
                         newJ++;
                     }
@@ -268,7 +269,7 @@ public class SupervisedClassification {
                 impCrop.getProcessor().fillOutside(dupRoi);
                 IJ.run(impCrop, "Enhance Contrast", "saturated=0.5");     
                 impCrop.setRoi(dupRoi);
-                ImageWindow.setNextLocation(screenSize.width, screenSize.height);
+                ImageWindow.setNextLocation(screenSize.width*2/3, screenSize.height*2/3);
                 impCrop.show();              
 
                 //Enable training after 10 classified nuclei
@@ -387,7 +388,7 @@ public class SupervisedClassification {
                         rm.runCommand("Save", folder + imageArray[imageIndex] + ".zip");
                     }
                 }
-                ImageWindow.setNextLocation(0, screenSize.height / 2);
+                ImageWindow.setNextLocation(0, screenSize.height*1/3);
                 impGUI.show();
                 //Reset
                 classifierLoaded = false;
@@ -460,7 +461,7 @@ public class SupervisedClassification {
                 IJ.run(impCrop, "Enhance Contrast", "saturated=0.5");     
                 dupRoi.setStrokeColor(colors[indexClass]);
                 impCrop.setRoi(dupRoi);
-                ImageWindow.setNextLocation(screenSize.width, screenSize.height);
+                ImageWindow.setNextLocation(screenSize.width*2/3, screenSize.height*2/3);
                 impCrop.show();
                 
                 while (waitForUserInput == true) {

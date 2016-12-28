@@ -23,10 +23,8 @@ public class HausdorffDistance {
 
     double hausdorffDistance;
     double averagedHausdorffDistance;
-    boolean blackBackground;
 
-    public HausdorffDistance(boolean blackBackground) {
-        this.blackBackground = blackBackground;
+    public HausdorffDistance() {
     }
 
     public double getAveragedHausdorffDistance() {
@@ -42,16 +40,11 @@ public class HausdorffDistance {
         ImagePlus maskA = mask1.duplicate();
         ImagePlus maskB = mask2.duplicate();
 
-        if (!blackBackground) {
-            IJ.run(maskA, "Invert", "");
-            IJ.run(maskB, "Invert", "");
-        }
+       
         IJ.run(maskA, "Outline", "");
         IJ.run(maskB, "Outline", "");
-        if (!blackBackground) {
-            IJ.run(maskA, "Invert", "");
-            IJ.run(maskB, "Invert", "");
-        }
+        
+        maskA.show();
 
         int pixelsContourA = maskA.getStatistics().histogram[maskA.getStatistics().histogram.length - 1];
         int pixelsContourB = maskB.getStatistics().histogram[maskB.getStatistics().histogram.length - 1];

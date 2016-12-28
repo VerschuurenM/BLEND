@@ -99,13 +99,6 @@ public class PredictClass {
             error = true;
             return null;
         }
-        try {
-            Path pathFile = FileSystems.getDefault().getPath(path);
-            Files.deleteIfExists(pathFile);
-        } catch (IOException x) {
-            System.err.println(x);
-            return null;
-        }
         return predClass;
     }
 
@@ -114,6 +107,13 @@ public class PredictClass {
     }
 
     public void writeResults(Nucleus nucleus, String[] classLabels) {
+        try {
+            Path pathFile = FileSystems.getDefault().getPath(path);
+            Files.deleteIfExists(pathFile);
+        } catch (IOException x) {
+            System.err.println(x);
+        }
+     
         String csvFile = path;
         File f = new File(csvFile);
         String COMMA_DELIMITER = ",";

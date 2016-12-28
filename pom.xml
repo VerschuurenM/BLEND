@@ -88,6 +88,12 @@
             <groupId>net.imagej</groupId>
             <artifactId>ij</artifactId>
             <version>1.51h</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.sun</groupId>
+                    <artifactId>tools</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>nz.ac.waikato.cms.weka</groupId>

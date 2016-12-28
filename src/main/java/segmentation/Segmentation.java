@@ -34,7 +34,7 @@ import java.util.*;
 
 public class Segmentation {
 
-    boolean blackBackground;
+    boolean showDebugImages;
 
     boolean backgroundSubtraction;
     double sizeRollingBall;
@@ -52,10 +52,10 @@ public class Segmentation {
     Nucleus[] nuclei;
     double[] measureFGBG;
     boolean goodInitialSegmentation = true;
-    boolean generateTestImages = false;
+    
 
-    public Segmentation(boolean blackBackground, boolean backgroundSubstraction, double sizeRollingBall, int indexFilter, double radiusFilter, boolean twoPass, AutoThresholder.Method globalThresholdMethod, AutoThresholder.Method localThresholdMethod, boolean refinement, double watershed, double minArea) {
-        this.blackBackground = blackBackground;
+    public Segmentation(boolean showDebugImages, boolean backgroundSubstraction, double sizeRollingBall, int indexFilter, double radiusFilter, boolean twoPass, AutoThresholder.Method globalThresholdMethod, AutoThresholder.Method localThresholdMethod, boolean refinement, double watershed, double minArea) {
+        this.showDebugImages = showDebugImages;
         this.backgroundSubtraction = backgroundSubstraction;
         this.sizeRollingBall = sizeRollingBall;
         this.indexFilter = indexFilter;
@@ -88,7 +88,7 @@ public class Segmentation {
             ImagePlus impDup = imp.duplicate();
             impDup.setProcessor(impDup.getProcessor().convertToShortProcessor());
 
-            if (generateTestImages) {
+            if (showDebugImages) {
                 impDup.setTitle(imp.getTitle() + "_Original");
                 impDup.show();
             }
@@ -99,7 +99,7 @@ public class Segmentation {
              GradientRemoval GR = new GradientRemoval();
              impGradientRemoval = GR.exec(impGradientRemoval, 3);
              impGradientRemoval.setTitle(imp.getTitle() + "_impGradientRemoval");
-             if (generateTestImages) {
+             if (showDebugImages) {
              impGradientRemoval.show();
              }
              //*/
@@ -111,7 +111,7 @@ public class Segmentation {
                 IJ.run(impBackground, "Subtract Background...", "rolling=" + sizeRollingBall);
                 System.out.println("Background subtraction: " + (System.currentTimeMillis() - startTimeImage));
             }
-            if (generateTestImages) {
+            if (showDebugImages) {
                 impBackground.show();
             }
             ImagePlus impPreProcessed = impBackground.duplicate();
@@ -124,7 +124,7 @@ public class Segmentation {
                     filter.rank(impPreProcessed.getProcessor(), radiusFilter, indexFilter);
                 }
             }
-            if (generateTestImages) {
+            if (showDebugImages) {
                 impPreProcessed.show();
             }
 
@@ -139,7 +139,7 @@ public class Segmentation {
             ImagePlus impGlobalFiltered = AF.exec(impGlobal, minArea);
             System.out.println("AreaFilter: " + (System.currentTimeMillis() - startTimeImage));
 
-            if (generateTestImages) {
+            if (showDebugImages) {
                 impGlobalFiltered.setTitle(imp.getTitle() + "_GlobalFiltered");
                 impGlobalFiltered.show();
             }
@@ -152,8 +152,13 @@ public class Segmentation {
                 if (twoPass) {
                     //Dilation
                     Dilation Di = new Dilation();
-                    ImagePlus impDilated = Di.exec(impGlobalFiltered, dilations, blackBackground);
+                    ImagePlus impDilated = Di.exec(impGlobalFiltered, dilations);
                     System.out.println("Dilation: " + (System.currentTimeMillis() - startTimeImage));
+                    
+                    if (showDebugImages) {
+                        impDilated.setTitle(imp.getTitle() + "_Dilated");
+                        impDilated.show();
+                    }
 
                     //LocalThreshold
                     LocalThreshold LT = new LocalThreshold(localThresholdMethod, impPreProcessed);
@@ -184,7 +189,7 @@ public class Segmentation {
                 IntensityFilter IF = new IntensityFilter();
                 ArrayList<Roi> roiListIF = IF.exec(impPreProcessed, roiListCF, measureFGBG);
 
-                if (generateTestImages) {
+                if (showDebugImages) {
                     ImagePlus impTest = impDup.duplicate();
                     Overlay overlay = new Overlay();
                     RoiManager rm = new RoiManager(false);
@@ -211,7 +216,7 @@ public class Segmentation {
                         }
                     }
 
-                    if (generateTestImages) {
+                    if (showDebugImages) {
                         ImagePlus impTest = impDup.duplicate();
                         Overlay overlay = new Overlay();
                         for (int i = 0; i < roiArrayCR.length; i++) {
@@ -225,14 +230,14 @@ public class Segmentation {
                     ArrayList<Roi> roiListWS;
                     if (watershed > 0) {
                         //Watershed
-                        Watershed WS = new Watershed(minArea, rangeEdge, profileWatershed, blackBackground, watershed, refinement);
+                        Watershed WS = new Watershed(minArea, rangeEdge, profileWatershed, watershed, refinement);
                         roiListWS = WS.exec(impPreProcessed, roiArrayCR);
                         System.out.println("WS: " + (System.currentTimeMillis() - startTimeImage));
                     } else {
                         roiListWS = new ArrayList<Roi>(Arrays.asList(roiArrayCR));
                     }
 
-                    if (generateTestImages) {
+                    if (showDebugImages) {
                         ImagePlus impTest = impDup.duplicate();
                         Overlay overlay = new Overlay();
                         for (int i = 0; i < roiListWS.size(); i++) {

@@ -34,16 +34,14 @@ import java.util.Arrays;
 public class Watershed {
     double minArea;
     double rangeEdge;
-    boolean blackBackground;
     boolean contourRefinement;
     double watershedThreshold;
     int profileWatershed;
 
-    public Watershed(double minArea, double rangeEdge, int profileWatershed, boolean blackBackground, double watershedThreshold, boolean contourRefinement) {
+    public Watershed(double minArea, double rangeEdge, int profileWatershed, double watershedThreshold, boolean contourRefinement) {
         this.minArea = minArea;
         this.rangeEdge = rangeEdge;
         this.profileWatershed = profileWatershed;
-        this.blackBackground = blackBackground;
         this.contourRefinement = contourRefinement;
         this.watershedThreshold = watershedThreshold;
     }
@@ -107,9 +105,6 @@ public class Watershed {
         //impMask.show();
         
         //Watershed
-        if (blackBackground == false) {
-            impWS.getProcessor().invert();
-        }
         EDM getWatershed = new EDM();
         //Output = BYTE_OVERWRITE
         EDM.setOutputType(0);
@@ -117,9 +112,6 @@ public class Watershed {
         getWatershed.setup("watershed", impWS);
         getWatershed.run(impWS.getProcessor());
         //impWS.show();
-        if (blackBackground == false) {
-            impWS.getProcessor().invert();
-        }
 
         //Create Image with WatershedLines
         ImageCalculator ic = new ImageCalculator();

@@ -31,6 +31,7 @@ public class SettingsGUI {
     String outputDirectory;
     String roiListDirectory;
 
+    boolean showDebugImages;
     boolean showResultImages;
     boolean saveResultImages;
     boolean extractFeatures;
@@ -103,6 +104,8 @@ public class SettingsGUI {
             gd.addChoice("Channel To Analyse", channelOptions, prefs.get("channel", "1"));
             gd.addChoice("Z Projection Method:", zProjOptions, prefs.get("zProjection","Average Intensity"));
             gd.setInsets(0, inset, 0);
+            gd.addCheckbox("Generate Debug Images", prefs.getBoolean("debugImages", true));
+            gd.setInsets(0, inset, 0);
             gd.addCheckbox("Save Segmented Images", prefs.getBoolean("saveImages", true));
             gd.setInsets(0, inset, 0);
             gd.addCheckbox("Show Segmented Images", prefs.getBoolean("showImages", true));
@@ -151,6 +154,8 @@ public class SettingsGUI {
             String zProjString = gd.getNextChoice();
             zProjection=Arrays.asList(zProjOptions).indexOf(zProjString);
             prefs.put("zProjection", zProjString);
+            showDebugImages = gd.getNextBoolean();
+            prefs.putBoolean("debugImages", showDebugImages);
             saveResultImages = gd.getNextBoolean();
             prefs.putBoolean("saveImages", saveResultImages);
             showResultImages = gd.getNextBoolean();
@@ -496,6 +501,10 @@ public class SettingsGUI {
         return watershedThreshold;
     }
 
+    public boolean getShowDebugImages() {
+        return showDebugImages;
+    }
+    
     public boolean getSaveResultImages() {
         return saveResultImages;
     }

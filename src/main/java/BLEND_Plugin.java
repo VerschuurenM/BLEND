@@ -62,9 +62,9 @@ public class BLEND_Plugin implements PlugIn {
 
     double watershed;
     boolean refinement;
-    boolean blackBackground;
     boolean saveResultImages;
     boolean saveCroppedNuclei;
+    boolean showDebugImages;
     boolean showResultImages;
     boolean extractFeatures;
     boolean scanThresholds;
@@ -90,7 +90,8 @@ public class BLEND_Plugin implements PlugIn {
         "MinError", "Minimum", "Moment", "Otsu", "Percentile", "RenyiEntropy", "Shanbhag", "Triangle", "Yen"};
 
     public void run(String arg) {
-        blackBackground = Prefs.blackBackground;
+        Prefs.blackBackground=true;
+
         //Get all configuration-parameters from config-file
         SettingsGUI ICN = new SettingsGUI();
         getAll(ICN);
@@ -102,7 +103,7 @@ public class BLEND_Plugin implements PlugIn {
             IJ.log("-----------------------------------");
             String newFolder = createFolder();
             //New SegmentationObject
-            Segmentation SegmentationObject = new Segmentation(blackBackground, backgroundSubtraction, sizeRollingBall, indexFilter, radiusFilter, twoPass, globalThresholdMethod, localThresholdMethod, refinement, watershed, minArea);
+            Segmentation SegmentationObject = new Segmentation(showDebugImages, backgroundSubtraction, sizeRollingBall, indexFilter, radiusFilter, twoPass, globalThresholdMethod, localThresholdMethod, refinement, watershed, minArea);
             //Array with all the names of the image-files in the inputdirectory
             ArrayList<String> imageArray = getImageArray(inputDirectory);
             //Loop over every image -> ImagePlus (Imageprocessor + metadata) -> Segmentation -> RoiArray -> RoiManager
@@ -174,7 +175,7 @@ public class BLEND_Plugin implements PlugIn {
             IJ.log("BLEND - Functionality: Classification - START");
             IJ.log("-----------------------------------");
             String folder = createFolder();
-            Segmentation SegmentationObject = new Segmentation(blackBackground, backgroundSubtraction, sizeRollingBall, indexFilter, radiusFilter, twoPass, globalThresholdMethod, localThresholdMethod, refinement, watershed, minArea);
+            Segmentation SegmentationObject = new Segmentation(false,backgroundSubtraction, sizeRollingBall, indexFilter, radiusFilter, twoPass, globalThresholdMethod, localThresholdMethod, refinement, watershed, minArea);
             SupervisedClassification SC = new SupervisedClassification(SegmentationObject, calibration, nChannels, channel, zProjection, dilationMicron, rangeEdgeMicron, profileWatershedMicron, inputDirectory, folder, saveCroppedNuclei);
             SC.exec();
             IJ.log("-----------------------------------");
@@ -197,7 +198,7 @@ public class BLEND_Plugin implements PlugIn {
             //PosCtrl
             if (posCtrl) {
                 IJ.log("Positive Control");
-                PosCtrl PC = new PosCtrl(GTDirectory, outputDirectory, impWidth, impHeight, blackBackground);
+                PosCtrl PC = new PosCtrl(GTDirectory, outputDirectory, impWidth, impHeight);
                 PC.exec();
             }
 
@@ -212,7 +213,7 @@ public class BLEND_Plugin implements PlugIn {
                             localThresholdMethod = thresholdMethods[indexLocal];
                             String newFolder = createFolder();
                             IJ.log("Global: " + globalThresholdMethod + " - Local: " + localThresholdMethod);
-                            Segmentation SegmentationObject = new Segmentation(blackBackground, backgroundSubtraction, sizeRollingBall, indexFilter, radiusFilter, twoPass, globalThresholdMethod, localThresholdMethod, refinement, watershed, minArea);
+                            Segmentation SegmentationObject = new Segmentation(false, backgroundSubtraction, sizeRollingBall, indexFilter, radiusFilter, twoPass, globalThresholdMethod, localThresholdMethod, refinement, watershed, minArea);
                             for (int imagesInArray = 0; imagesInArray < imageArray.size(); imagesInArray++) {
 
                                 ImagePlus impStack = IJ.openImage(inputDirectory + imageArray.get(imagesInArray));
@@ -254,7 +255,7 @@ public class BLEND_Plugin implements PlugIn {
                                 }
                                 listNuclei.add(nuclei);
                             }
-                            RoiListComparison RLC = new RoiListComparison(listRoiMaskGT, blackBackground, impWidth, impHeight, listNuclei, outputDirectory, outputName, imageArray, thresholds[indexGlobal], thresholds[indexLocal]);
+                            RoiListComparison RLC = new RoiListComparison(listRoiMaskGT,  impWidth, impHeight, listNuclei, outputDirectory, outputName, imageArray, thresholds[indexGlobal], thresholds[indexLocal]);
                             RLC.exec();
                         }
                     }
@@ -265,7 +266,7 @@ public class BLEND_Plugin implements PlugIn {
                         String newFolder = createFolder();
                         ArrayList<Nucleus[]> listNuclei = new ArrayList<Nucleus[]>();
                         IJ.log("Global: " + globalThresholdMethod + " - Local: " + localThresholdMethod);
-                        Segmentation SegmentationObject = new Segmentation(blackBackground, backgroundSubtraction, sizeRollingBall, indexFilter, radiusFilter, twoPass, globalThresholdMethod, localThresholdMethod, refinement, watershed, minArea);
+                        Segmentation SegmentationObject = new Segmentation( false, backgroundSubtraction, sizeRollingBall, indexFilter, radiusFilter, twoPass, globalThresholdMethod, localThresholdMethod, refinement, watershed, minArea);
                         for (int imagesInArray = 0; imagesInArray < imageArray.size(); imagesInArray++) {
                             ImagePlus impStack = IJ.openImage(inputDirectory + imageArray.get(imagesInArray));
                             int[] dim = impStack.getDimensions();
@@ -303,7 +304,7 @@ public class BLEND_Plugin implements PlugIn {
                             }
                             listNuclei.add(nuclei);
                         }
-                        RoiListComparison RLC = new RoiListComparison(listRoiMaskGT, blackBackground, impWidth, impHeight, listNuclei, outputDirectory, outputName, imageArray, thresholds[indexGlobal], "");
+                        RoiListComparison RLC = new RoiListComparison(listRoiMaskGT,  impWidth, impHeight, listNuclei, outputDirectory, outputName, imageArray, thresholds[indexGlobal], "");
                         RLC.exec();
                     }
                 }
@@ -312,7 +313,7 @@ public class BLEND_Plugin implements PlugIn {
                     IJ.log("Global: " + globalThresholdMethod + " - Local: " + localThresholdMethod);
                     String newFolder = createFolder();
                     ArrayList<Nucleus[]> listRoiArray = new ArrayList<Nucleus[]>();
-                    Segmentation SegmentationObject = new Segmentation(blackBackground, backgroundSubtraction, sizeRollingBall, indexFilter, radiusFilter, twoPass, globalThresholdMethod, localThresholdMethod, refinement, watershed, minArea);
+                    Segmentation SegmentationObject = new Segmentation( false, backgroundSubtraction, sizeRollingBall, indexFilter, radiusFilter, twoPass, globalThresholdMethod, localThresholdMethod, refinement, watershed, minArea);
                     for (int imagesInArray = 0; imagesInArray < imageArray.size(); imagesInArray++) {
                         ImagePlus impStack = IJ.openImage(inputDirectory + imageArray.get(imagesInArray));
                         int[] dim = impStack.getDimensions();
@@ -352,14 +353,14 @@ public class BLEND_Plugin implements PlugIn {
                         }
                         listRoiArray.add(nuclei);
                     }
-                    RoiListComparison RLC = new RoiListComparison(listRoiMaskGT, blackBackground, impWidth, impHeight, listRoiArray, outputDirectory, outputName, imageArray, thresholds[java.util.Arrays.asList(thresholdMethods).indexOf(globalThresholdMethod)], thresholds[java.util.Arrays.asList(thresholdMethods).indexOf(localThresholdMethod)]);
+                    RoiListComparison RLC = new RoiListComparison(listRoiMaskGT,  impWidth, impHeight, listRoiArray, outputDirectory, outputName, imageArray, thresholds[java.util.Arrays.asList(thresholdMethods).indexOf(globalThresholdMethod)], thresholds[java.util.Arrays.asList(thresholdMethods).indexOf(localThresholdMethod)]);
                     RLC.exec();
                 } else if (!twoPass) {
                     IJ.log("Global: " + globalThresholdMethod);
                     localThresholdMethod = null;
                     String newFolder = createFolder();
                     ArrayList<Nucleus[]> listNuclei = new ArrayList<Nucleus[]>();
-                    Segmentation SegmentationObject = new Segmentation(blackBackground, backgroundSubtraction, sizeRollingBall, indexFilter, radiusFilter, twoPass, globalThresholdMethod, localThresholdMethod, refinement, watershed, minArea);
+                    Segmentation SegmentationObject = new Segmentation( false,backgroundSubtraction, sizeRollingBall, indexFilter, radiusFilter, twoPass, globalThresholdMethod, localThresholdMethod, refinement, watershed, minArea);
                     for (int imagesInArray = 0; imagesInArray < imageArray.size(); imagesInArray++) {
                         ImagePlus impStack = IJ.openImage(inputDirectory + imageArray.get(imagesInArray));
                         int[] dim = impStack.getDimensions();
@@ -399,7 +400,7 @@ public class BLEND_Plugin implements PlugIn {
                         }
                         listNuclei.add(nuclei);
                     }
-                    RoiListComparison RLC = new RoiListComparison(listRoiMaskGT, blackBackground, impWidth, impHeight, listNuclei, outputDirectory, outputName, imageArray, thresholds[java.util.Arrays.asList(thresholdMethods).indexOf(globalThresholdMethod)], "");
+                    RoiListComparison RLC = new RoiListComparison(listRoiMaskGT,  impWidth, impHeight, listNuclei, outputDirectory, outputName, imageArray, thresholds[java.util.Arrays.asList(thresholdMethods).indexOf(globalThresholdMethod)], "");
                     RLC.exec();
                 }
             }
@@ -431,7 +432,7 @@ public class BLEND_Plugin implements PlugIn {
                 }
                 listNuclei.add(temp);
             }
-            RoiListComparison RLC = new RoiListComparison(listRoiMaskGT, blackBackground, impWidth, impHeight, listNuclei, outputDirectory, outputName, fileNames, "", "");
+            RoiListComparison RLC = new RoiListComparison(listRoiMaskGT,  impWidth, impHeight, listNuclei, outputDirectory, outputName, fileNames, "", "");
             RLC.exec();
             IJ.log("-----------------------------------");
             IJ.log("BLEND - Functionality: Comparison - END");
@@ -578,6 +579,7 @@ public class BLEND_Plugin implements PlugIn {
         impWidth = GUI.getWidth();
         impHeight = GUI.getHeight();
         roiListDirectory = GUI.getRoiListDirectory();
+        showDebugImages = GUI.getShowDebugImages();
         showResultImages = GUI.getShowResultImages();
         extractFeatures = GUI.getExtractFeatures();
         posCtrl = GUI.getPosCtrl();

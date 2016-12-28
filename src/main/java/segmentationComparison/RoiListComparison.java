@@ -43,11 +43,9 @@ public class RoiListComparison {
     double[] hddSumImageArray;
     int impWidth;
     int impHeight;
-    boolean blackBackground;
 
-    public RoiListComparison(ArrayList<ArrayList<ImagePlus[]>> listRoiMaskGT, boolean blackBackground, int impWidth, int impHeight, ArrayList<Nucleus[]> listNuclei, String outputDir, String outputName, ArrayList<String> fileNames, String method1, String method2) {
+    public RoiListComparison(ArrayList<ArrayList<ImagePlus[]>> listRoiMaskGT, int impWidth, int impHeight, ArrayList<Nucleus[]> listNuclei, String outputDir, String outputName, ArrayList<String> fileNames, String method1, String method2) {
         this.listRoiMaskGT = listRoiMaskGT;
-        this.blackBackground = blackBackground;
         this.outputDir = outputDir;
         this.outputName = outputName;
         this.listRoiArray = listNuclei;
@@ -139,7 +137,7 @@ public class RoiListComparison {
     }
 
     private void compare(ImagePlus mask1, ImagePlus mask2, int imageIndex, int GT) {
-        HausdorffDistance HDD = new HausdorffDistance(blackBackground);
+        HausdorffDistance HDD = new HausdorffDistance();
         DiceCoeficient DC = new DiceCoeficient();
 
         mask2.getProcessor().setThreshold(255, 255, ImageProcessor.NO_LUT_UPDATE);

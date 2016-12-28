@@ -41,14 +41,12 @@ public class PosCtrl {
     double[] ahdArray;
     int impWidth;
     int impHeight;
-    boolean blackBackground;
 
-    public PosCtrl(ArrayList<String> GTDirectory, String outputDirectory, int impWidth, int impHeight, boolean blackBackground) {
+    public PosCtrl(ArrayList<String> GTDirectory, String outputDirectory, int impWidth, int impHeight) {
         this.GTDirectory = GTDirectory;
         this.outputDirectory = outputDirectory;
         this.impWidth = impWidth;
         this.impHeight = impHeight;
-        this.blackBackground = blackBackground;
     }
 
     public void exec() {
@@ -87,7 +85,7 @@ public class PosCtrl {
     }
 
     private void compare(ImagePlus[] arrayRoiMaskA, ImagePlus[] arrayRoiMaskB, int GT1, int GT2, int imageIndex, String[] fileNames) {
-        HausdorffDistance HDD = new HausdorffDistance(blackBackground);
+        HausdorffDistance HDD = new HausdorffDistance();
         DiceCoeficient DC = new DiceCoeficient();
         for (int roiIndex = 0; roiIndex < arrayRoiMaskA.length; roiIndex++) {
             ImagePlus roiMaskA = arrayRoiMaskA[roiIndex];
