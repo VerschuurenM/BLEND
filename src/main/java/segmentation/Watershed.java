@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-
 package segmentation;
 
 import ij.ImagePlus;
@@ -32,18 +31,21 @@ import ij.process.FloatPolygon;
 import java.util.Arrays;
 
 public class Watershed {
+
     double minArea;
     double rangeEdge;
     boolean contourRefinement;
     double watershedThreshold;
     int profileWatershed;
+    boolean showDebugImages;
 
-    public Watershed(double minArea, double rangeEdge, int profileWatershed, double watershedThreshold, boolean contourRefinement) {
+    public Watershed(double minArea, double rangeEdge, int profileWatershed, double watershedThreshold, boolean contourRefinement, boolean showDebugImages) {
         this.minArea = minArea;
         this.rangeEdge = rangeEdge;
         this.profileWatershed = profileWatershed;
         this.contourRefinement = contourRefinement;
         this.watershedThreshold = watershedThreshold;
+        this.showDebugImages = showDebugImages;
     }
 
     protected ArrayList<Roi> exec(ImagePlus imp, Roi[] roiArray) {
@@ -53,7 +55,7 @@ public class Watershed {
                 roiList.add(roiArray[i]);
             }
         }
-        
+
         //DEBUG
         /*/
         RoiManager rm = new RoiManager();
@@ -64,9 +66,6 @@ public class Watershed {
         rm.setVisible(true);
         System.out.println("DEBUG");
         //*/
-        
-        
-
         // Make binary image from roiList
         ImagePlus impBinary = IJ.createImage("impBinary", "8-bit black", imp.getWidth(), imp.getHeight(), 1);
         Color white = new Color(255, 255, 255);
@@ -102,8 +101,7 @@ public class Watershed {
             analyzerImp.measure();
             impMask.killRoi();
         }
-        //impMask.show();
-        
+
         //Watershed
         EDM getWatershed = new EDM();
         //Output = BYTE_OVERWRITE
@@ -111,15 +109,21 @@ public class Watershed {
         //Prepare for processing: String name + imagePlus impWS
         getWatershed.setup("watershed", impWS);
         getWatershed.run(impWS.getProcessor());
-        //impWS.show();
 
         //Create Image with WatershedLines
         ImageCalculator ic = new ImageCalculator();
         ImagePlus impWSLines = ic.run("Subtract create", impBinary, impWS);
+        impWSLines.setTitle("WSLines");
+
+//        if (showDebugImages) {
+//            impMask.duplicate().show();
+//            impWS.duplicate().show();
+//            impWSLines.duplicate().show();
+//        }
 
         //Check if any nuclei are split = check if mean impWSLine > 0;
         Analyzer.setMeasurements(0);
-        measurements = Measurements.MEAN;
+        measurements = Measurements.MEAN + Measurements.AREA;
         Analyzer.setMeasurements(measurements);
         ResultsTable rtTestWSLines = new ResultsTable();
         Analyzer analyzerTestWSLines = new Analyzer(impWSLines, measurements, rtTestWSLines);
@@ -185,15 +189,6 @@ public class Watershed {
                         wsLinesList.add(roiArrayWSLines[nrLine]);
                     }
                 }
-                
-                //Debug
-                /*/
-                if(roiNr==55){
-                    imp.setRoi(roiList.get(roiNr));
-                    imp.show();
-                    System.out.println("DEBUG");
-                }
-                //*/
 
                 ResultsTable rtLocal = new ResultsTable();
                 if (splitRoiList.size() > 1) {
@@ -285,7 +280,6 @@ public class Watershed {
                         double areaLocalRoi = rtLocal.getValueAsDouble(ResultsTable.AREA, localRoiNr);
                         double areaNearestRoi = rtLocal.getValueAsDouble(ResultsTable.AREA, nearestRoiNr);
 
-                        //Merge if area < minArea
                         if (areaLocalRoi < minArea || areaNearestRoi < minArea || lineRoi == null) {
                             merge = true;
                         } //Merge based on intensityprofile perpedicular to watershedline
@@ -308,12 +302,13 @@ public class Watershed {
                             if (localRoiNr < nearestRoiNr) {
                                 splitRoiList.set(localRoiNr, combinedShape);
                                 splitRoiList.remove(nearestRoiNr);
+                                localRoiNr--;
                             } else {
                                 splitRoiList.set(nearestRoiNr, combinedShape);
                                 splitRoiList.remove(localRoiNr);
+                                localRoiNr=nearestRoiNr-1;
                             }
 
-                            localRoiNr--;
                         }
                         if (twoRois == true) {
                             break;
@@ -508,7 +503,7 @@ public class Watershed {
         }
         for (int index = 1; index < profile.length - 1; index++) {
             int sign1 = (int) Math.signum(profile[index] - profile[index - 1] / 1);
-            int sign2 = (int) Math.signum(profile[index+1] - profile[index] / 1);
+            int sign2 = (int) Math.signum(profile[index + 1] - profile[index] / 1);
             if (sign1 == -1 || sign1 == 0) {
                 if (sign2 == 1 || sign2 == 0) {
                     if (profile[index] < watershedThreshold * max) {
@@ -520,8 +515,6 @@ public class Watershed {
         }
         return merge;
     }
-
-    
 
     protected ResultsTable RTlocal(ImagePlus imp, ArrayList<Roi> localRoiList) {
         Analyzer.setMeasurements(0);

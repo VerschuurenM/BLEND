@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-
 package segmentation;
 
 import GUI.GenericDialogPlus;
@@ -46,15 +45,15 @@ public class Segmentation {
     AutoThresholder.Method localThresholdMethod;
 
     double minArea;
+    double maxArea;
     boolean refinement;
     double watershed;
 
     Nucleus[] nuclei;
     double[] measureFGBG;
     boolean goodInitialSegmentation = true;
-    
 
-    public Segmentation(boolean showDebugImages, boolean backgroundSubstraction, double sizeRollingBall, int indexFilter, double radiusFilter, boolean twoPass, AutoThresholder.Method globalThresholdMethod, AutoThresholder.Method localThresholdMethod, boolean refinement, double watershed, double minArea) {
+    public Segmentation(boolean showDebugImages, boolean backgroundSubstraction, double sizeRollingBall, int indexFilter, double radiusFilter, boolean twoPass, AutoThresholder.Method globalThresholdMethod, AutoThresholder.Method localThresholdMethod, boolean refinement, double watershed, double minArea, double maxArea) {
         this.showDebugImages = showDebugImages;
         this.backgroundSubtraction = backgroundSubstraction;
         this.sizeRollingBall = sizeRollingBall;
@@ -66,6 +65,7 @@ public class Segmentation {
         this.refinement = refinement;
         this.watershed = watershed;
         this.minArea = minArea;
+        this.maxArea = maxArea;
     }
 
     public void exec(ImagePlus imp, double dilationMicron, double rangeEdgeMicron, double profileWatershedMicron) {
@@ -106,7 +106,7 @@ public class Segmentation {
 
             //Substract background
             ImagePlus impBackground = impGradientRemoval.duplicate();
-            impBackground.setTitle(imp.getTitle() + "_impBackgroundSubtraction");
+            impBackground.setTitle(imp.getTitle() + "_BackgroundSubtraction");
             if (backgroundSubtraction) {
                 IJ.run(impBackground, "Subtract Background...", "rolling=" + sizeRollingBall);
                 System.out.println("Background subtraction: " + (System.currentTimeMillis() - startTimeImage));
@@ -115,7 +115,7 @@ public class Segmentation {
                 impBackground.show();
             }
             ImagePlus impPreProcessed = impBackground.duplicate();
-            impPreProcessed.setTitle(imp.getTitle() + "_impFilter");
+            impPreProcessed.setTitle(imp.getTitle() + "_Filter");
             if (indexFilter != 0) {
                 if (indexFilter == (-1)) {
                     new GaussianBlur().blurGaussian(impPreProcessed.getProcessor(), radiusFilter);
@@ -135,17 +135,17 @@ public class Segmentation {
             System.out.println("GT: " + (System.currentTimeMillis() - startTimeImage));
 
             //Areafilter
-            AreaFilter AF = new AreaFilter();
+            AreaFilterPre AF = new AreaFilterPre();
             ImagePlus impGlobalFiltered = AF.exec(impGlobal, minArea);
             System.out.println("AreaFilter: " + (System.currentTimeMillis() - startTimeImage));
 
             if (showDebugImages) {
-                impGlobalFiltered.setTitle(imp.getTitle() + "_GlobalFiltered");
+                impGlobalFiltered.setTitle(imp.getTitle() + "_Global");
                 impGlobalFiltered.show();
             }
 
             ArrayList<Roi> roiListCF;
-            if (impGlobalFiltered.getProcessor().getStatistics().max== 0) {
+            if (impGlobalFiltered.getProcessor().getStatistics().max == 0) {
                 nuclei = null;
                 IJ.log("No nuclei detected");
             } else {
@@ -154,7 +154,7 @@ public class Segmentation {
                     Dilation Di = new Dilation();
                     ImagePlus impDilated = Di.exec(impGlobalFiltered, dilations);
                     System.out.println("Dilation: " + (System.currentTimeMillis() - startTimeImage));
-                    
+
                     if (showDebugImages) {
                         impDilated.setTitle(imp.getTitle() + "_Dilated");
                         impDilated.show();
@@ -196,7 +196,7 @@ public class Segmentation {
                     for (int i = 0; i < roiListIF.size(); i++) {
                         overlay.add(roiListIF.get(i));
                     }
-                    impTest.setTitle(imp.getTitle() + "_LocalFiltered");
+                    impTest.setTitle(imp.getTitle() + "_Local");
                     impTest.show();
                     impTest.setOverlay(overlay);
                 }
@@ -230,7 +230,7 @@ public class Segmentation {
                     ArrayList<Roi> roiListWS;
                     if (watershed > 0) {
                         //Watershed
-                        Watershed WS = new Watershed(minArea, rangeEdge, profileWatershed, watershed, refinement);
+                        Watershed WS = new Watershed(minArea, rangeEdge, profileWatershed, watershed, refinement, showDebugImages);
                         roiListWS = WS.exec(impPreProcessed, roiArrayCR);
                         System.out.println("WS: " + (System.currentTimeMillis() - startTimeImage));
                     } else {
@@ -247,25 +247,70 @@ public class Segmentation {
                         impTest.show();
                         impTest.setOverlay(overlay);
                     }
+
                     //SplineFit
                     FitSpline FS = new FitSpline();
                     ArrayList<Roi> roiListFS = FS.exec(impPreProcessed, roiListWS);
                     System.out.println("FitSpline: " + (System.currentTimeMillis() - startTimeImage));
+
+                    if (showDebugImages) {
+                        ImagePlus impTest = impDup.duplicate();
+                        Overlay overlay = new Overlay();
+                        for (int i = 0; i < roiListFS.size(); i++) {
+                            overlay.add(roiListFS.get(i));
+                        }
+                        impTest.setTitle(imp.getTitle() + "_Spline");
+                        impTest.show();
+                        impTest.setOverlay(overlay);
+                    }
 
                     //Remove Roi on edge
                     RemoveRoiEdge RRE = new RemoveRoiEdge();
                     ArrayList<Roi> roiListRRE = RRE.exec(impPreProcessed, roiListFS);
                     System.out.println("RemoveRoiOnEdge: " + (System.currentTimeMillis() - startTimeImage));
 
+                    if (showDebugImages) {
+                        ImagePlus impTest = impDup.duplicate();
+                        Overlay overlay = new Overlay();
+                        for (int i = 0; i < roiListRRE.size(); i++) {
+                            overlay.add(roiListRRE.get(i));
+                        }
+                        impTest.setTitle(imp.getTitle() + "_RemoveNucleiEdge");
+                        impTest.show();
+                        impTest.setOverlay(overlay);
+                    }
+
                     //Remove Small Roi
-                    RemoveSmallRoi RSR = new RemoveSmallRoi();
-                    ArrayList<Roi> roiListRSR = RSR.exec(impPreProcessed, roiListRRE, minArea);
+                    AreaFilterPost RSR = new AreaFilterPost();
+                    ArrayList<Roi> roiListRSR = RSR.exec(impPreProcessed, roiListRRE, minArea, maxArea);
                     System.out.println("RemoveSmallRoi: " + (System.currentTimeMillis() - startTimeImage));
+
+                    if (showDebugImages) {
+                        ImagePlus impTest = impDup.duplicate();
+                        Overlay overlay = new Overlay();
+                        for (int i = 0; i < roiListRSR.size(); i++) {
+                            overlay.add(roiListRSR.get(i));
+                        }
+                        impTest.setTitle(imp.getTitle() + "_AreaFilterPost");
+                        impTest.show();
+                        impTest.setOverlay(overlay);
+                    }
 
                     //Remove Overlap
                     RemoveOverlap RO = new RemoveOverlap();
                     ArrayList<Roi> roiListRO = RO.exec(impPreProcessed, roiListRSR);
                     System.out.println("RemoveOverlap: " + (System.currentTimeMillis() - startTimeImage));
+
+                    if (showDebugImages) {
+                        ImagePlus impTest = impDup.duplicate();
+                        Overlay overlay = new Overlay();
+                        for (int i = 0; i < roiListRO.size(); i++) {
+                            overlay.add(roiListRO.get(i));
+                        }
+                        impTest.setTitle(imp.getTitle() + "_RemoveOverlap");
+                        impTest.show();
+                        impTest.setOverlay(overlay);
+                    }
 
                     nuclei = new Nucleus[roiListRO.size()];
                     for (int i = 0; i < roiListRO.size(); i++) {
@@ -290,7 +335,8 @@ public class Segmentation {
             goodInitialSegmentation = false;
         }
         for (int i = 0; i < roiList.size(); i++) {
-            if (roiList.get(i).getBounds().getHeight() > 0.5 * impHeight || roiList.get(i).getBounds().getWidth() > 0.5 * impWidth) {
+            //if (roiList.get(i).getBounds().getHeight() > 0.5 * impHeight || roiList.get(i).getBounds().getWidth() > 0.5 * impWidth) {
+            if (roiList.get(i).getBounds().getHeight() > 0.9 * impHeight || roiList.get(i).getBounds().getWidth() > 0.9 * impWidth) {
                 IJ.log("Wrong initial segmentation: to large ROI detected - exclude refinement and watershed");
                 goodInitialSegmentation = false;
             }

@@ -25,7 +25,7 @@ import ij.plugin.filter.ThresholdToSelection;
 import ij.process.ImageProcessor;
 import java.awt.Color;
 
-public class AreaFilter {
+public class AreaFilterPre {
     protected ImagePlus exec(ImagePlus imp, double minArea) {
         ThresholdToSelection ThresholdToSelectionObject = new ThresholdToSelection();
         ImagePlus impAreaFilter = IJ.createImage("impAreaFilter", "8-bit black", imp.getWidth(), imp.getHeight(), 1);

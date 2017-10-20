@@ -31,6 +31,7 @@ public class SettingsGUI {
     String outputDirectory;
     String roiListDirectory;
 
+    boolean randomImages;
     boolean showDebugImages;
     boolean showResultImages;
     boolean saveResultImages;
@@ -52,6 +53,7 @@ public class SettingsGUI {
     double radiusFilter;
 
     double minArea;
+    double maxArea;
 
     boolean twoPass;
     AutoThresholder.Method globalThresholdMethod;
@@ -106,6 +108,8 @@ public class SettingsGUI {
             gd.setInsets(0, inset, 0);
             gd.addCheckbox("Generate Debug Images", prefs.getBoolean("debugImages", true));
             gd.setInsets(0, inset, 0);
+            gd.addCheckbox("Randomize Images", prefs.getBoolean("randomImages", true));
+            gd.setInsets(0, inset, 0);
             gd.addCheckbox("Save Segmented Images", prefs.getBoolean("saveImages", true));
             gd.setInsets(0, inset, 0);
             gd.addCheckbox("Show Segmented Images", prefs.getBoolean("showImages", true));
@@ -123,6 +127,7 @@ public class SettingsGUI {
             gd.setInsets(20, 0, 0);
             gd.addMessage("Segmentation:", new Font(null, Font.BOLD, 12));
             gd.addNumericField("Min Area", prefs.getDouble("minArea", 45), 0, 3, "µm²");
+            gd.addNumericField("Max Area", prefs.getDouble("maxArea", 500), 0, 3, "µm²");
             gd.addChoice("Global Threshold", thresholds, prefs.get("global", "Mean"));
             gd.addChoice("Local Threshold", thresholdsLocal, prefs.get("local", "Li"));
             gd.setInsets(0, inset, 0);
@@ -156,6 +161,8 @@ public class SettingsGUI {
             prefs.put("zProjection", zProjString);
             showDebugImages = gd.getNextBoolean();
             prefs.putBoolean("debugImages", showDebugImages);
+            randomImages = gd.getNextBoolean();
+            prefs.putBoolean("randomImages", randomImages);
             saveResultImages = gd.getNextBoolean();
             prefs.putBoolean("saveImages", saveResultImages);
             showResultImages = gd.getNextBoolean();
@@ -175,6 +182,8 @@ public class SettingsGUI {
 
             minArea = gd.getNextNumber();
             prefs.putDouble("minArea", minArea);
+            maxArea = gd.getNextNumber();
+            prefs.putDouble("maxArea", maxArea);
             index = gd.getNextChoiceIndex();
             globalThresholdMethod = thresholdMethods[index];
             prefs.put("global", thresholds[index]);
@@ -216,6 +225,8 @@ public class SettingsGUI {
             gd.setInsets(20, 0, 0);
             gd.addMessage("Segmentation:", new Font(null, Font.BOLD, 12));
             gd.addNumericField("Min Area", prefs.getDouble("minArea", 45), 0, 3, "µm²");
+            gd.addNumericField("Max Area", prefs.getDouble("maxArea", 500), 0, 3, "µm²");
+
             gd.addChoice("Global Threshold", thresholds, prefs.get("global", "Mean"));
             gd.addChoice("Local Threshold", thresholdsLocal, prefs.get("local", "Li"));
             gd.setInsets(0, inset, 0);
@@ -262,6 +273,8 @@ public class SettingsGUI {
 
             minArea = gd.getNextNumber();
             prefs.putDouble("minArea", minArea);
+            maxArea = gd.getNextNumber();
+            prefs.putDouble("maxArea", maxArea);
             index = gd.getNextChoiceIndex();
             globalThresholdMethod = thresholdMethods[index];
             prefs.put("global", thresholds[index]);
@@ -307,6 +320,8 @@ public class SettingsGUI {
             gd.setInsets(20, 0, 0);
             gd.addMessage("Segmentation:", new Font(null, Font.BOLD, 12));
             gd.addNumericField("Min Area", prefs.getDouble("minArea", 45), 0, 3, "µm²");
+            gd.addNumericField("Max Area", prefs.getDouble("maxArea", 500), 0, 3, "µm²");
+
             gd.setInsets(0, inset, 0);   
             gd.addCheckbox("Scan Thresholds", prefs.getBoolean("scanThresholds", false));
             gd.addChoice("Global Threshold", thresholds, prefs.get("global", "Mean"));
@@ -373,6 +388,8 @@ public class SettingsGUI {
 
             minArea = gd.getNextNumber();
             prefs.putDouble("minArea", minArea);
+            maxArea = gd.getNextNumber();
+            prefs.putDouble("maxArea", maxArea);
             scanThresholds = gd.getNextBoolean();
             prefs.putBoolean("scanThresholds", scanThresholds);
             index = gd.getNextChoiceIndex();
@@ -501,6 +518,10 @@ public class SettingsGUI {
         return watershedThreshold;
     }
 
+    public boolean getRandomImages() {
+        return randomImages;
+    }
+    
     public boolean getShowDebugImages() {
         return showDebugImages;
     }
@@ -523,6 +544,10 @@ public class SettingsGUI {
 
     public double getMinArea() {
         return minArea;
+    }
+    
+    public double getMaxArea() {
+        return maxArea;
     }
 
     public boolean getBackgroundSubstraction() {

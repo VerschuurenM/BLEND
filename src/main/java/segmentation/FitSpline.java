@@ -31,6 +31,8 @@ public class FitSpline {
         for(int i=0; i<roiList.size();i++){
             Roi roi = roiList.get(i);
             FloatPolygon interpolatedRoi = roi.getInterpolatedPolygon(fit, false);
+            //imp.show();
+            //imp.setRoi(roi);
             PolygonRoi polygonRoi= new PolygonRoi(interpolatedRoi.xpoints, interpolatedRoi.ypoints, Roi.POLYGON);
             polygonRoi.fitSpline();
             Roi roiFitted = polygonRoi;

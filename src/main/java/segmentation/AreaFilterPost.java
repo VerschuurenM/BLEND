@@ -21,9 +21,9 @@ import ij.ImagePlus;
 import ij.measure.*;
 import ij.plugin.filter.Analyzer;
 
-public class RemoveSmallRoi {
+public class AreaFilterPost {
 
-    protected ArrayList<Roi> exec(ImagePlus imp, ArrayList<Roi> roiList, double minArea) {
+    protected ArrayList<Roi> exec(ImagePlus imp, ArrayList<Roi> roiList, double minArea, double maxArea) {
         ArrayList<Roi> roiListChecked = new ArrayList<Roi>();
 
         Analyzer.setMeasurements(0);
@@ -37,7 +37,7 @@ public class RemoveSmallRoi {
                 analyzer.measure();
                 imp.killRoi();
                 double area = rt.getValueAsDouble(ResultsTable.AREA, 0);
-                if(area>minArea){
+                if(area>minArea & area<maxArea){
                     roiListChecked.add(roiList.get(i));
                 }
             } 

@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-
 package segmentation;
 
 import ij.gui.PolygonRoi;
@@ -21,7 +20,9 @@ import ij.process.FloatPolygon;
 import java.util.ArrayList;
 import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
-import ij.ImagePlus;;
+import ij.ImagePlus;
+
+;
 
 public class ContourRefinement {
 
@@ -35,16 +36,16 @@ public class ContourRefinement {
     int indexLoop2;
     ArrayList<Roi> roiListBeforeDP;
     int it;
-    int iterations=25;
+    int iterations = 25;
     double rangeEdge;
-    
+
     public ContourRefinement(double rangeEdge) {
-        this.rangeEdge= rangeEdge;
+        this.rangeEdge = rangeEdge;
     }
 
     protected Roi[] exec(ArrayList<Roi> roiList, ImagePlus imp) {
 
-    //Iterative search to optimal path describing the edge of each nucleus
+        //Iterative search to optimal path describing the edge of each nucleus
         //For loop over all ROIs 
         //Iterative (#=it) search for path with maximal pathStrength
         //Create interpolated ROI: shuffle ROI --> Different starting point 
@@ -56,7 +57,6 @@ public class ContourRefinement {
         //Dynamic programming --> Search optimal path in Straightened edge --> BooleanArray
         //CurveLine: reconstruct optimal Path
         //Add finalRoi to roiListFinal
-        
         roiListBeforeDP = roiList;
         ArrayList<Roi> roiListFinal = new ArrayList<Roi>();
         int originalNumber = roiListBeforeDP.size();
@@ -66,6 +66,14 @@ public class ContourRefinement {
             maxPathStrenght = 0;
             it = 0;
             boolean multipleRoi = false;
+
+            //DEBUG
+            /*/
+            ImagePlus impDup = imp.duplicate();
+            impDup.setRoi(localRoi);
+            impDup.show();
+            impDup.close();
+            //*/
             if (localRoi.getBounds().getWidth() > rangeEdge && localRoi.getBounds().getHeight() > rangeEdge) {
                 do {
                     it += 1;
@@ -77,9 +85,12 @@ public class ContourRefinement {
                         PolygonRoi initiationRoi = new PolygonRoi(interpolatedRoiShuffle, Roi.POLYGON);
 
                         float[][] edgeArray = straightenLine(imp, initiationRoi, (int) rangeEdge);
+
                         DynamicProgramming DP = new DynamicProgramming();
-                        boolean[][] booleanArray = DP.exec(edgeArray, false);
-                        
+
+                        boolean[][] booleanArray = new boolean[0][0];
+                        booleanArray = DP.exec(edgeArray, false);
+
                         pathStrenght = DP.getPathStrenght();
                         localRoi = curveLine(booleanArray);
                         localRoi = new PolygonRoi(eliminateLoop(localRoi.getFloatPolygon(), rangeEdge, true), Roi.POLYGON);
@@ -122,7 +133,7 @@ public class ContourRefinement {
                 boolean[][] booleanArray = DP.exec(edgeArray, false);
                 pathStrenght = DP.getPathStrenght();
                 roiBefore = curveLine(booleanArray);
-                roiBefore = new PolygonRoi(eliminateLoop(roiBefore.getFloatPolygon(), rangeEdge,false), Roi.POLYGON);
+                roiBefore = new PolygonRoi(eliminateLoop(roiBefore.getFloatPolygon(), rangeEdge, false), Roi.POLYGON);
 
                 //System.out.println("Number iterations= " + it + " pathstrenght= " + pathStrenght);
                 if ((maxPathStrenght <= pathStrenght)) {
@@ -135,7 +146,7 @@ public class ContourRefinement {
         return roiAfter;
 
     }
-    
+
     protected float[][] straightenLine(ImagePlus imp, Roi tempRoi, int width) {
 
         if (!(tempRoi instanceof PolygonRoi)) {
@@ -162,7 +173,7 @@ public class ContourRefinement {
         n = p.npoints;
         ImageProcessor ip = imp.getProcessor();
         ImageProcessor ip2 = new FloatProcessor(n, width);
-		//ImageProcessor distances = null;
+        //ImageProcessor distances = null;
         //if (IJ.debugMode)  distances = new FloatProcessor(n, 1);
         float[] pixels = (float[]) ip2.getPixels();
         double x1, y1;
@@ -220,10 +231,10 @@ public class ContourRefinement {
 
         return ip3;
     }
-    
+
     protected Roi curveLine(boolean[][] booleanArray) {
-    //Recreate ROI based on booleanArray & correspondanceArray    
-        
+        //Recreate ROI based on booleanArray & correspondanceArray    
+
         float[] xPoints = new float[booleanArray.length];
         float[] yPoints = new float[booleanArray.length];
 
@@ -358,7 +369,7 @@ public class ContourRefinement {
         int lengthLoop1 = indexLoop2 - indexLoop1;
         int lengthLoop2 = (xCoord.length - 1 - indexLoop2) + (indexLoop1);
 
-        if (lengthLoop1 > 0.30 * xCoord.length && lengthLoop2 > 0.30 * xCoord.length && splitAllowed==true) {
+        if (lengthLoop1 > 0.30 * xCoord.length && lengthLoop2 > 0.30 * xCoord.length && splitAllowed == true) {
             float[] xCoord1 = new float[(indexLoop1 + 1) + (xCoord.length - indexLoop2)];
             float[] yCoord1 = new float[xCoord1.length];
             float[] xCoord2 = new float[indexLoop2 - indexLoop1];
