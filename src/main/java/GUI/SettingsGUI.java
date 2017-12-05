@@ -76,9 +76,9 @@ public class SettingsGUI {
             AutoThresholder.Method.MinError, AutoThresholder.Method.Minimum, AutoThresholder.Method.Moments, AutoThresholder.Method.Otsu, AutoThresholder.Method.Percentile, AutoThresholder.Method.RenyiEntropy, AutoThresholder.Method.Shanbhag, AutoThresholder.Method.Triangle, AutoThresholder.Method.Yen};
         AutoThresholder.Method[] thresholdMethodsLocal = {null, AutoThresholder.Method.Huang, AutoThresholder.Method.IJ_IsoData, AutoThresholder.Method.Intermodes, AutoThresholder.Method.IsoData, AutoThresholder.Method.Li, AutoThresholder.Method.MaxEntropy, AutoThresholder.Method.Mean,
             AutoThresholder.Method.MinError, AutoThresholder.Method.Minimum, AutoThresholder.Method.Moments, AutoThresholder.Method.Otsu, AutoThresholder.Method.Percentile, AutoThresholder.Method.RenyiEntropy, AutoThresholder.Method.Shanbhag, AutoThresholder.Method.Triangle, AutoThresholder.Method.Yen};
-        String[] filters = {"-", "Gaussian", "Median", "Mean", "Minimum", "Maximum", "Variance"};
-        int[] filterIndex = {0, -1, RankFilters.MEDIAN, RankFilters.MEAN, RankFilters.MIN, RankFilters.MAX, RankFilters.VARIANCE};
-
+        String[] filters = {"-", "Gaussian", "Mean", "Minimum", "Maximum", "Variance", "Median"};
+        int[] filterIndex = {-2, -1, RankFilters.MEAN, RankFilters.MIN, RankFilters.MAX, RankFilters.VARIANCE, RankFilters.MEDIAN};
+       
         //Select functionality
         GenericDialogPlus gd = new GenericDialogPlus("BLEND");
         String[] functions = {"Segmentation", "Supervised Classification", "Validation", "Compare RoiLists"};
