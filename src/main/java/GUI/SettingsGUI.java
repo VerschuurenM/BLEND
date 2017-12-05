@@ -23,7 +23,6 @@ import ij.plugin.filter.RankFilters;
 import java.awt.Font;
 
 public class SettingsGUI {
-
     int functionality;
 
     ArrayList<String> GTDirectory = new ArrayList<String>();
