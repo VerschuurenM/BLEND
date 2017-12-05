@@ -116,7 +116,7 @@ public class Segmentation {
             }
             ImagePlus impPreProcessed = impBackground.duplicate();
             impPreProcessed.setTitle(imp.getTitle() + "_Filter");
-            if (indexFilter != 0) {
+            if (indexFilter != -2) {
                 if (indexFilter == (-1)) {
                     new GaussianBlur().blurGaussian(impPreProcessed.getProcessor(), radiusFilter);
                 } else {
