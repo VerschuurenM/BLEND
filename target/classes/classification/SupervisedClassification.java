@@ -14,24 +14,17 @@
  */
 package classification;
 
-import GUI.GenericDialogPlus;
 import Nucleus.Nucleus;
-import com.sun.java.swing.plaf.windows.WindowsDesktopManager;
 import ij.IJ;
 import ij.gui.*;
 import ij.gui.GenericDialog;
 import ij.ImagePlus;
-import ij.Macro;
+import ij.CompositeImage;
 import ij.measure.Calibration;
 import ij.plugin.frame.RoiManager;
 import ij.io.OpenDialog;
-import ij.WindowManager;
-import ij.measure.Measurements;
-import ij.plugin.ContrastEnhancer;
 import ij.plugin.Duplicator;
 import ij.plugin.ZProjector;
-import ij.process.ImageProcessor;
-import ij.process.ImageStatistics;
 import ij.process.LUT;
 import java.awt.*;
 import java.awt.Dimension;
@@ -57,7 +50,6 @@ import weka.classifiers.functions.SMO;
 import weka.classifiers.meta.FilteredClassifier;
 import weka.filters.unsupervised.attribute.Remove;
 import weka.classifiers.functions.supportVector.*;
-import weka.core.Statistics;
 
 public class SupervisedClassification {
 
@@ -69,8 +61,11 @@ public class SupervisedClassification {
     int zProjection;
     String folder;
     String[] imageArray;
+    String titleImp;
     boolean saveCroppedNuclei;
-    ImagePlus impGUI;
+    CompositeImage impGUI;
+    ImagePlus impGUItoCrop;
+    ImagePlus impSegmentation;
     Overlay overlay;
     String sep = ",";
 
@@ -178,7 +173,9 @@ public class SupervisedClassification {
         classifierLoaded = false;
         impGUI = null;
         ImagePlus impCrop = null;
+        ImagePlus impCropComposite = null;
         overlay = null;
+        LUT [] luts = new LUT[nChannels];
 //        if (IJ.getLog() != null) {
 //            IJ.selectWindow("Log");
 //            IJ.run("Close");
@@ -197,38 +194,67 @@ public class SupervisedClassification {
             IJ.log("Segmenting Image: " + (imageIndex + 1) + "/" + imageArray.length + " ...");
 
             ImagePlus impStack = IJ.openImage(inputDirectory + imageArray[imageIndex]);
-            Duplicator dup = new Duplicator();
-            impGUI = new ImagePlus();
-            if (!impStack.isHyperStack()) {
-                if (nChannels != impStack.getDimensions()[2]) {
-                    impGUI = dup.run(impStack, 1, 1, channel, channel, 1, 1);
-                } else {
-                    impGUI = dup.run(impStack, channel, channel, 1, impStack.getNSlices(), 1, 1);
-                }
-            } else {
-                impGUI = dup.run(impStack, channel, channel, 1, impStack.getNSlices(), 1, 1);
-                ZProjector zproj = new ZProjector(impGUI);
-                zproj.setMethod(zProjection);
-                zproj.doProjection();
-                impGUI = zproj.getProjection();
-            }
-            cal = new Calibration(impGUI);
+            //Calibration
+            cal = new Calibration(impStack);
             cal.pixelWidth = calibration;
             cal.pixelHeight = calibration;
             cal.pixelDepth = calibration;
             cal.setUnit("µm");
-            impGUI.setCalibration(cal);
-            impGUI.setLut(LUT.createLutFromColor(Color.lightGray));
-            impGUI.setTitle(impStack.getTitle());
+            impStack.setCalibration(cal);
+            
+            titleImp = impStack.getTitle();
+            Duplicator dup = new Duplicator();
+            ImagePlus impGUITemp = new ImagePlus();
+            impSegmentation = new ImagePlus();
+            if (impStack.getNSlices()==1) {
+                    impGUITemp = dup.run(impStack, 1, nChannels, 1, 1, 1, 1);
+                    impSegmentation = dup.run(impStack, channel, channel, 1, 1, 1, 1);
+            } else {
+                impGUITemp = dup.run(impStack, 1, nChannels, 1, impStack.getNSlices(), 1, 1);
+                ZProjector zproj = new ZProjector(impGUITemp);
+                zproj.setMethod(zProjection);
+                zproj.doProjection();
+                impGUITemp = zproj.getProjection();
+                impSegmentation = dup.run(impStack, channel, channel, 1, impStack.getNSlices(), 1, 1);
+                zproj = new ZProjector(impSegmentation);
+                zproj.setMethod(zProjection);
+                zproj.doProjection();
+                impSegmentation = zproj.getProjection();
+            }
+            impGUITemp.setTitle(titleImp);
+            impSegmentation.setTitle(titleImp);
 
+            
+            //Composite GUI
+            impGUI= new CompositeImage(impGUITemp, 1);
+           
+            if(imageIndex==beginImageIndex){
+                //Set standard luts
+                luts[0]= LUT.createLutFromColor(Color.GRAY);
+                if(nChannels>1){
+                    luts[1]= LUT.createLutFromColor(Color.green);
+                }
+                if(nChannels>2){
+                    luts[2]= LUT.createLutFromColor(Color.cyan);
+                }
+                if(nChannels>3){
+                    luts[3]= LUT.createLutFromColor(Color.magenta);
+                }
+                impGUI.setLuts(luts);
+            }else{
+                impGUI.setLuts(luts);
+            }
+            impGUItoCrop=impGUI.duplicate();
+
+            
+            
             dim = (int) (50.0 / cal.pixelWidth);
-
-            SegmentationObject.exec(impGUI, dilationMicron, rangeEdgeMicron, profileWatershedMicron);
-            String impTitle = impGUI.getTitle();
+            
+            //Segmentation
+            SegmentationObject.exec(impSegmentation, dilationMicron, rangeEdgeMicron, profileWatershedMicron);
             nuclei = SegmentationObject.getNuclei();
-
             overlay = getCurrentOverlay();
-            if (nuclei.length != 0) {
+            if (nuclei != null) {
                 RoiManager rm = new RoiManager(false);
                 for (int i = 0; i < nuclei.length; i++) {
                     rm.addRoi(nuclei[i].roiNucleus);
@@ -242,65 +268,76 @@ public class SupervisedClassification {
             impGUI.show();
 
             //Loop over all detected Nuclei + assign label
-            for (nucleusIndex = beginRoiIndex; nucleusIndex < nuclei.length; nucleusIndex++) {
-                IJ.log("Classify Roi: " + (nucleusIndex + 1) + "/" + nuclei.length + " ...");
-                //Classify nucleus
-                impGUI.setRoi(nuclei[nucleusIndex].roiNucleus, true);
-                
-                                impCrop = IJ.createImage("Crop", dim, dim, 1, impGUI.getBitDepth());
-                impCrop.setCalibration(cal);
-                Rectangle r = new Rectangle(nuclei[nucleusIndex].roiNucleus.getBounds());
-                ShapeRoi dupRoi = new ShapeRoi(nuclei[nucleusIndex].roiNucleus);
-                int newI = (dim - r.width) / 2;
-                int newJ = (dim - r.height) / 2;
-                for (int i = r.x; i < (r.x + r.width); i++) {
-                    for (int j = r.y; j < (r.y + r.height); j++) {
-                        int pix = impGUI.getProcessor().getPixel(i, j);
-                        impCrop.getProcessor().putPixel(newI, newJ, pix);
-                        ImageWindow.setNextLocation(screenSize.width*2/3, screenSize.height*2/3);
-                        impCrop.show();
-                        newJ++;
+            if (nuclei != null) {
+                for (nucleusIndex = beginRoiIndex; nucleusIndex < nuclei.length; nucleusIndex++) {
+                    IJ.log("Classify Roi: " + (nucleusIndex + 1) + "/" + nuclei.length + " ...");
+                    //Classify nucleus
+                    impGUI.setC(channel);
+                    impGUI.setRoi(nuclei[nucleusIndex].roiNucleus, true);
+                    impCrop = IJ.createImage("Crop", dim, dim, 1, impGUI.getBitDepth());
+                    impCrop.setCalibration(cal);
+                    Rectangle r = new Rectangle(nuclei[nucleusIndex].roiNucleus.getBounds());
+                    ShapeRoi dupRoi = new ShapeRoi(nuclei[nucleusIndex].roiNucleus);
+                    int newI = (dim - r.width) / 2;
+                    int newJ = (dim - r.height) / 2;
+                    for (int i = r.x; i < (r.x + r.width); i++) {
+                        for (int j = r.y; j < (r.y + r.height); j++) {
+                            int pix = impGUI.getProcessor().getPixel(i, j);
+                            impCrop.getProcessor().putPixel(newI, newJ, pix);
+                            newJ++;
+                        }
+                        newJ = (dim - r.height) / 2;
+                        newI++;
                     }
-                    newJ = (dim - r.height) / 2;
-                    newI++;
-                }
-                impCrop.deleteRoi();
-                dupRoi.setLocation((dim - r.width) / 2, (dim - r.height) / 2);
-                impCrop.getProcessor().fillOutside(dupRoi);
-                IJ.run(impCrop, "Enhance Contrast", "saturated=0.5");     
-                impCrop.setRoi(dupRoi);
-                ImageWindow.setNextLocation(screenSize.width*2/3, screenSize.height*2/3);
-                impCrop.show();              
+                    impCrop.deleteRoi();
+                    dupRoi.setLocation((dim - r.width) / 2, (dim - r.height) / 2);
+                    impCrop.getProcessor().fillOutside(dupRoi);
+                    IJ.run(impCrop, "Enhance Contrast", "saturated=0.5");     
+                    impCrop.setRoi(dupRoi);
+                    ImageWindow.setNextLocation(screenSize.width*3/4, screenSize.height*2/3);
+                    impCrop.show(); 
 
-                //Enable training after 10 classified nuclei
-                if (textList.size() > 10) {
-                    trainButton.setEnabled(true);
-                } else {
-                    trainButton.setEnabled(false);
-                }
+                    dup = new Duplicator();
+                    impGUItoCrop.setRoi(new Rectangle(new Point((r.x-dim/2), (r.y-dim/2)), new Dimension(dim,dim)));
+                    impCropComposite=dup.run(impGUItoCrop);
+                    impCropComposite.setTitle("Composite");
+                    ImageWindow.setNextLocation(screenSize.width*2/4, screenSize.height*2/3);
+                    impCropComposite.show();
+                    impGUI.setRoi(nuclei[nucleusIndex].roiNucleus, true);
 
-                //WaitForUserInput
-                while (waitForUserInput == true) {
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException ex) {
-                        System.out.println("Error! :(");
+
+                    //Enable training after 10 classified nuclei
+                    if (textList.size() > 10) {
+                        trainButton.setEnabled(true);
+                    } else {
+                        trainButton.setEnabled(false);
                     }
+
+                    //WaitForUserInput
+                    while (waitForUserInput == true) {
+                        try {
+                            Thread.sleep(100);
+                        } catch (InterruptedException ex) {
+                            System.out.println("Error! :(");
+                        }
+                    }
+
+                    //Break out of loop when classifier is trained or loaded
+                    if (refinement || classifierLoaded) {
+                        break;
+                    }
+
+                    //Reset
+                    waitForUserInput = true;
+
+                    //Close cropped image
+                    impCrop.changes = false;
+                    impCropComposite.changes=false;
+                    impCrop.close();
+                    impCropComposite.close();
                 }
-
-                //Break out of loop when classifier is trained or loaded
-                if (refinement || classifierLoaded) {
-                    break;
-                }
-
-                //Reset
-                waitForUserInput = true;
-
-                //Close cropped image
-                impCrop.changes = false;
-                impCrop.close();
             }
-
+            
             //Unable previous button when opening new image
             previousButton.setEnabled(false);
             beginRoiIndex = 0;
@@ -318,12 +355,14 @@ public class SupervisedClassification {
                 overlay = null;
                 break;
             }
+            luts=impGUI.getLuts();
             //Save image with overlay
             if (!classifierLoaded) {
                 IJ.saveAsTiff(impGUI, folder + imageArray[imageIndex] + "_Class.tiff");
                 impGUI.close();
                 overlay = null;
             }
+
         }
 
         //Reset Images and Results when new classifier is loaded
@@ -343,7 +382,9 @@ public class SupervisedClassification {
         //Close cropped image
         if (impCrop != null) {
             impCrop.changes = false;
+            impCropComposite.changes=false;
             impCrop.close();
+            impCropComposite.close();
         }
 
         //Loop in refinement mode 
@@ -354,34 +395,75 @@ public class SupervisedClassification {
             IJ.log("Image: " + (imageIndex + 1) + "/" + imageArray.length);
             //Only open image and segment if it is not already open
             if (classifierLoaded || imageIndex != beginImageIndex) {
+                
                 ImagePlus impStack = IJ.openImage(inputDirectory + imageArray[imageIndex]);
+                titleImp = impStack.getTitle();
                 Duplicator dup = new Duplicator();
-                impGUI = new ImagePlus();
+                ImagePlus impGUITemp = new ImagePlus();
+                impSegmentation = new ImagePlus();
                 if (!impStack.isHyperStack()) {
                     if (nChannels != impStack.getDimensions()[2]) {
-                        impGUI = dup.run(impStack, 1, 1, channel, channel, 1, 1);
+                        impGUITemp = dup.run(impStack, 1, 1, 1, nChannels, 1, 1);
+                        impSegmentation = dup.run(impStack, 1, 1, channel, channel, 1, 1);
                     } else {
-                        impGUI = dup.run(impStack, channel, channel, 1, impStack.getNSlices(), 1, 1);
+                        impGUITemp = dup.run(impStack, channel, nChannels, 1, impStack.getNSlices(), 1, 1);
+                        impSegmentation = dup.run(impStack, channel, channel, 1, impStack.getNSlices(), 1, 1);
                     }
                 } else {
-                    impGUI = dup.run(impStack, channel, channel, 1, impStack.getNSlices(), 1, 1);
-                    ZProjector zproj = new ZProjector(impGUI);
+                    impGUITemp = dup.run(impStack, 1, nChannels, 1, impStack.getNSlices(), 1, 1);
+                    ZProjector zproj = new ZProjector(impGUITemp);
                     zproj.setMethod(zProjection);
                     zproj.doProjection();
-                    impGUI = zproj.getProjection();
+                    impGUITemp = zproj.getProjection();
+                    impSegmentation = dup.run(impStack, channel, channel, 1, impStack.getNSlices(), 1, 1);
+                    zproj = new ZProjector(impSegmentation);
+                    zproj.setMethod(zProjection);
+                    zproj.doProjection();
+                    impSegmentation = zproj.getProjection();
                 }
+
+                //Calibration GUI Image
                 cal = new Calibration(impGUI);
                 cal.pixelWidth = calibration;
                 cal.pixelHeight = calibration;
                 cal.pixelDepth = calibration;
                 cal.setUnit("µm");
-                impGUI.setCalibration(cal);
-                impGUI.setLut(LUT.createLutFromColor(Color.lightGray));
-                impGUI.setTitle(impStack.getTitle());
+                impGUITemp.setCalibration(cal);
+
+                //Composite GUI
+                impGUI= new CompositeImage(impGUITemp, 1);
+
+                if(imageIndex==beginImageIndex){
+                    //Set standard luts
+                    luts[0]= LUT.createLutFromColor(Color.GRAY);
+                    if(nChannels>1){
+                        luts[1]= LUT.createLutFromColor(Color.green);
+                    }
+                    if(nChannels>2){
+                        luts[2]= LUT.createLutFromColor(Color.cyan);
+                    }
+                    if(nChannels>3){
+                        luts[3]= LUT.createLutFromColor(Color.magenta);
+                    }
+                    impGUI.setLuts(luts);
+                }else{
+                    impGUI.setLuts(luts);
+                }
+                impGUItoCrop=impGUI.duplicate();
+
+                //Calibration Segmentation Image
+                cal = new Calibration(impSegmentation);
+                cal.pixelWidth = calibration;
+                cal.pixelHeight = calibration;
+                cal.pixelDepth = calibration;
+                cal.setUnit("µm");
+                impSegmentation.setCalibration(cal);
+
+                dim = (int) (50.0 / cal.pixelWidth);
 
                 SegmentationObject.exec(impGUI, dilationMicron, rangeEdgeMicron, profileWatershedMicron);
                 nuclei = SegmentationObject.getNuclei();
-                if (nuclei.length != 0) {
+                if (nuclei != null) {
                     RoiManager rm = new RoiManager(false);
                     for (int i = 0; i < nuclei.length; i++) {
                         rm.addRoi(nuclei[i].roiNucleus);
@@ -409,96 +491,108 @@ public class SupervisedClassification {
             }
 
             //Loop over Nuclei in image
-            for (nucleusIndex = beginRoiIndex; nucleusIndex < nuclei.length; nucleusIndex++) {
-                IJ.log("Roi: " + (nucleusIndex + 1) + "/" + nuclei.length);
+            if (nuclei != null) {
+                for (nucleusIndex = beginRoiIndex; nucleusIndex < nuclei.length; nucleusIndex++) {
+                    IJ.log("Roi: " + (nucleusIndex + 1) + "/" + nuclei.length);
 
-                //SetButtons
-                correctButton.setEnabled(true);
-                redefineButton.setEnabled(true);
-                for (int i = 0; i < classLabels.length; i++) {
-                    labelButtons[i].setEnabled(false);
-                }
-                trainButton.setText("Re-train classifier");
-                addClassButton.setEnabled(false);
-                if (textList.size() > 10) {
-                    trainButton.setEnabled(true);
-                } else {
-                    trainButton.setEnabled(false);
-                }
-
-                //Predict Class
-                PredictClass PC = new PredictClass(folder, inputDirectory);
-                //predictedClass = PC.exec(fc, imageArray, imageIndex, nuclei[nucleusIndex], classLabels);
-                predictedClass = PC.exec(fc, impGUI, nuclei[nucleusIndex], classLabels);
-                indexClass = Arrays.asList(classLabels).indexOf(predictedClass);
-                predictedClassLabel.setText(predictedClass);
-                predictedClassLabel.setForeground(colors[indexClass]);
-                predictedClassLabel.setEnabled(true);
-                nuclei[nucleusIndex].roiNucleus.setStrokeColor(colors[indexClass]);
-
-                //Classify nucleus
-                impGUI.setRoi(nuclei[nucleusIndex].roiNucleus, true);
-                
-                impCrop = IJ.createImage("Crop", dim, dim, 1, impGUI.getBitDepth());
-                impCrop.setCalibration(cal);
-                Rectangle r = new Rectangle(nuclei[nucleusIndex].roiNucleus.getBounds());
-                ShapeRoi dupRoi = new ShapeRoi(nuclei[nucleusIndex].roiNucleus);
-                int newI = (dim - r.width) / 2;
-                int newJ = (dim - r.height) / 2;
-                for (int i = r.x; i < (r.x + r.width); i++) {
-                    for (int j = r.y; j < (r.y + r.height); j++) {
-                        int pix = impGUI.getProcessor().getPixel(i, j);
-                        impCrop.getProcessor().putPixel(newI, newJ, pix);
-                        impCrop.show();
-                        newJ++;
+                    //SetButtons
+                    correctButton.setEnabled(true);
+                    redefineButton.setEnabled(true);
+                    for (int i = 0; i < classLabels.length; i++) {
+                        labelButtons[i].setEnabled(false);
                     }
-                    newJ = (dim - r.height) / 2;
-                    newI++;
-                }
-                impCrop.deleteRoi();
-                dupRoi.setLocation((dim - r.width) / 2, (dim - r.height) / 2);
-                impCrop.getProcessor().fillOutside(dupRoi);
-                IJ.run(impCrop, "Enhance Contrast", "saturated=0.5");     
-                dupRoi.setStrokeColor(colors[indexClass]);
-                impCrop.setRoi(dupRoi);
-                ImageWindow.setNextLocation(screenSize.width*2/3, screenSize.height*2/3);
-                impCrop.show();
-                
-                while (waitForUserInput == true) {
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException ex) {
-                        System.out.println("Error! :(");
+                    trainButton.setText("Re-train classifier");
+                    addClassButton.setEnabled(false);
+                    if (textList.size() > 10) {
+                        trainButton.setEnabled(true);
+                    } else {
+                        trainButton.setEnabled(false);
                     }
-                }
 
-                //If classifier is loaded, restart classification process
-                if (classifierLoaded) {
-                    overlay = null;
-                    imageIndex = -1;
-                    beginImageIndex = -1;
-                    nucleusIndex = -1;
-                    beginRoiIndex = -1;
-                    waitForUserInput = true;
-                    break;
-                } else if (applyClassifier) {
-                    AssignClass AC = new AssignClass(folder, saveCroppedNuclei, inputDirectory);
-                    //textList = AC.exec(imageArray, nuclei, imageIndex, nucleusIndex, textList, classLabels[indexClass]);
-                    impGUI.deleteRoi();
-                    textList = AC.exec(impGUI.duplicate(), nuclei, nucleusIndex, textList, classLabels[indexClass]);
+                    //Predict Class
+                    PredictClass PC = new PredictClass(folder, inputDirectory,nChannels);
+                    //predictedClass = PC.exec(fc, imageArray, imageIndex, nuclei[nucleusIndex], classLabels);
+                    predictedClass = PC.exec(fc, impGUI, nuclei[nucleusIndex], classLabels);
+                    indexClass = Arrays.asList(classLabels).indexOf(predictedClass);
+                    predictedClassLabel.setText(predictedClass);
+                    predictedClassLabel.setForeground(colors[indexClass]);
+                    predictedClassLabel.setEnabled(true);
                     nuclei[nucleusIndex].roiNucleus.setStrokeColor(colors[indexClass]);
-                    overlay.add(nuclei[nucleusIndex].roiNucleus);
-                    impGUI.setOverlay(overlay);
-                }
 
-                //Reset only if classifier is not applied on whole dataset
-                if (!applyClassifier) {
-                    waitForUserInput = true;
-                }
+                    //Classify nucleus
+                    impGUI.setC(channel);
+                    impGUI.setRoi(nuclei[nucleusIndex].roiNucleus, true);
+                    impCrop = IJ.createImage("Crop", dim, dim, 1, impGUI.getBitDepth());
+                    impCrop.setCalibration(cal);
+                    Rectangle r = new Rectangle(nuclei[nucleusIndex].roiNucleus.getBounds());
+                    ShapeRoi dupRoi = new ShapeRoi(nuclei[nucleusIndex].roiNucleus);
+                    int newI = (dim - r.width) / 2;
+                    int newJ = (dim - r.height) / 2;
+                    for (int i = r.x; i < (r.x + r.width); i++) {
+                        for (int j = r.y; j < (r.y + r.height); j++) {
 
-                //Close cropped image
-                impCrop.changes = false;
-                impCrop.close();
+                            int pix = impGUI.getProcessor().getPixel(i, j);
+                            impCrop.getProcessor().putPixel(newI, newJ, pix);
+                            newJ++;
+                        }
+                        newJ = (dim - r.height) / 2;
+                        newI++;
+                    }
+                    impCrop.deleteRoi();
+                    dupRoi.setLocation((dim - r.width) / 2, (dim - r.height) / 2);
+                    impCrop.getProcessor().fillOutside(dupRoi);
+                    IJ.run(impCrop, "Enhance Contrast", "saturated=0.5");     
+                    dupRoi.setStrokeColor(colors[indexClass]);
+                    impCrop.setRoi(dupRoi);
+                    ImageWindow.setNextLocation(screenSize.width*3/4, screenSize.height*2/3);
+                    impCrop.show();
+
+                    Duplicator dup = new Duplicator();
+                    impGUItoCrop.setRoi(new Rectangle(new Point((r.x-dim/2), (r.y-dim/2)), new Dimension(dim,dim)));
+                    impCropComposite=dup.run(impGUItoCrop);
+                    impCropComposite.setTitle("Composite");
+                    ImageWindow.setNextLocation(screenSize.width*2/4, screenSize.height*2/3);
+                    impCropComposite.show();
+                    impGUI.setRoi(nuclei[nucleusIndex].roiNucleus, true);
+
+                    while (waitForUserInput == true) {
+                        try {
+                            Thread.sleep(100);
+                        } catch (InterruptedException ex) {
+                            System.out.println("Error! :(");
+                        }
+                    }
+
+                    //If classifier is loaded, restart classification process
+                    if (classifierLoaded) {
+                        overlay = null;
+                        imageIndex = -1;
+                        beginImageIndex = -1;
+                        nucleusIndex = -1;
+                        beginRoiIndex = -1;
+                        waitForUserInput = true;
+                        break;
+                    } else if (applyClassifier) {
+                        AssignClass AC = new AssignClass(folder, saveCroppedNuclei, inputDirectory);
+                        //textList = AC.exec(imageArray, nuclei, imageIndex, nucleusIndex, textList, classLabels[indexClass]);
+                        impGUI.deleteRoi();
+                        textList = AC.exec(impGUI.duplicate(),titleImp, nuclei, nucleusIndex, textList, classLabels[indexClass]);
+                        nuclei[nucleusIndex].roiNucleus.setStrokeColor(colors[indexClass]);
+                        overlay.add(nuclei[nucleusIndex].roiNucleus);
+                        impGUI.setOverlay(overlay);
+                    }
+
+                    //Reset only if classifier is not applied on whole dataset
+                    if (!applyClassifier) {
+                        waitForUserInput = true;
+                    }
+
+                    //Close cropped image
+                    impCrop.changes = false;
+                    impCropComposite.changes=false;
+                    impCrop.close();
+                    impCropComposite.close();
+                }
             }
 
             //Unable previous button when opening new image
@@ -776,7 +870,7 @@ public class SupervisedClassification {
                             }
                             if (!canceled) {
                                 //Test classes
-                                PredictClass PCTest = new PredictClass(folder, inputDirectory);
+                                PredictClass PCTest = new PredictClass(folder, inputDirectory,nChannels);
                                 //String test = PCTest.exec(fc, imageArray, imageIndex, nuclei[nucleusIndex], classLabels);  
                                 String test = PCTest.exec(fc, impGUI, nuclei[nucleusIndex], classLabels);
 
@@ -880,7 +974,7 @@ public class SupervisedClassification {
                         AssignClass AC = new AssignClass(folder, saveCroppedNuclei, inputDirectory);
                         //textList = AC.exec(imageArray, nuclei, imageIndex, nucleusIndex, textList, classLabels[indexClass]);
                         impGUI.deleteRoi();
-                        textList = AC.exec(impGUI.duplicate(), nuclei, nucleusIndex, textList, classLabels[indexClass]);
+                        textList = AC.exec(impGUI.duplicate(),titleImp, nuclei, nucleusIndex, textList, classLabels[indexClass]);
                         nuclei[nucleusIndex].roiNucleus.setStrokeColor(colors[indexClass]);
                         overlay.add(nuclei[nucleusIndex].roiNucleus);
                         impGUI.setOverlay(overlay);
@@ -904,7 +998,7 @@ public class SupervisedClassification {
                                 AssignClass AC = new AssignClass(folder, saveCroppedNuclei, inputDirectory);
                                 //textList = AC.exec(imageArray, nuclei, imageIndex, nucleusIndex, textList, classLabels[indexClass]);
                                 impGUI.deleteRoi();
-                                textList = AC.exec(impGUI.duplicate(), nuclei, nucleusIndex, textList, classLabels[indexClass]);
+                                textList = AC.exec(impGUI.duplicate(), titleImp,nuclei, nucleusIndex, textList, classLabels[indexClass]);
                                 waitForUserInput = false;
                                 previousButton.setEnabled(true);
                                 nuclei[nucleusIndex].roiNucleus.setStrokeColor(colors[indexClass]);
@@ -1192,9 +1286,10 @@ public class SupervisedClassification {
             for (int i = 0; i < fileArray.length; i++) {
                 if (fileArray[i].indexOf(".tif") > 0) {
                     int position = fileArray[i].indexOf(";");
-                    String imageTemp = fileArray[i].substring(0, position);
-                    int position2 = fileArray[i].indexOf(";", position + 1);
-                    int roiIndexTemp = Integer.parseInt(fileArray[i].substring(position + 1, position2));
+                    int position1 = fileArray[i].indexOf(";",position+1);
+                    String imageTemp = fileArray[i].substring(position+1, position1);
+                    int position2 = fileArray[i].indexOf(";", position1 + 1);
+                    int roiIndexTemp = Integer.parseInt(fileArray[i].substring(position1 + 1, position2));
                     if (imageTemp.equals(imageArray[imageIndex]) && roiIndexTemp == nucleusIndex) {
                         try {
                             Path pathFile = FileSystems.getDefault().getPath(folder + "CroppedImages/" + fileArray[i]);

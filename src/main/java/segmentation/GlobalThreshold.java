@@ -79,5 +79,4 @@ public class GlobalThreshold {
 
         return measure;
     }
-
 }

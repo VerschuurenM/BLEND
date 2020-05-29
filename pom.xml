@@ -1,30 +1,79 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
-		http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="https://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="https://maven.apache.org/POM/4.0.0
+		https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     
     <parent>
         <groupId>org.scijava</groupId>
         <artifactId>pom-scijava</artifactId>
-        <version>11.0.0</version>
+        <version>26.0.0</version>
     </parent>
  
     <repositories>
         <!-- NB: for project parent -->
         <repository>
             <id>imagej.public</id>
-            <url>http://maven.imagej.net/content/groups/public</url>
+            <url>https://maven.imagej.net/content/groups/public</url>
         </repository>
     </repositories>
-
+    
     <groupId>be.ua.mverschuuren</groupId>
     <artifactId>BLEND_Plugin</artifactId>
-    <version>0.1.2</version>
-
+    <version>0.2.0-SNAPSHOT</version>
     <name>BLEbbedNucleiDetector</name>
     <description>A Maven project implementing an ImageJ 1.x plugin</description>
+    <url>https://www.uantwerpen.be/en/staff/winnok-devos/cell-team/scripts/</url>
+    <inceptionYear>2016</inceptionYear>
+    <organization>
+        <name> Winnok De Vos Cell Team </name>
+        <url>https://www.uantwerpen.be/en/staff/winnok-devos/cell-team/</url>
+    </organization>
+    <licenses>
+        <license>
+            <name>GNU General Public License</name>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <id>mverschuuren</id>
+            <name>Marlies Verschuuren</name>
+            <url>https://www.uantwerpen.be/en/staff/winnok-devos/cell-team/</url>
+        </developer>
+    </developers>
+    <contributors>
+        <contributor>
+            <name> Hannes Catrysse</name>
+        </contributor>
+    </contributors>
+    <mailingLists>
+        <mailingList>
+            <name> Image.sc Forum </name>
+            <archive> https://forum.image.sc/tags/imagej</archive>
+        </mailingList>
+    </mailingLists>
+        
+    <scm>
+        <connection>scm:git:git://github.com/VerschuurenM/BLEND</connection>
+        <developerConnection>scm:git:git@github.com:VerschuurenM/BLEND</developerConnection>
+        <tag>HEAD</tag>
+        <url>https://github.com/VerschuurenM/BLEND</url>
+    </scm>
+    <issueManagement>
+            <system>GitHub Issues</system>
+            <url>https://github.com/VerschuurenM/BLEND/issues</url>
+    </issueManagement>
+    <ciManagement>
+            <system>None</system>
+    </ciManagement>    
+
+    <properties>
+            <package-name>be.ua.mverschuuren</package-name>
+            <main-class>be.ua.mverschuuren.BLEND</main-class>
+            <license.licenseName>GNU</license.licenseName>
+            <license.copyrightOwners>Marlies Verschuuren</license.copyrightOwners>
+    </properties>
 
     <build>
         <resources>
@@ -87,7 +136,6 @@
         <dependency>
             <groupId>net.imagej</groupId>
             <artifactId>ij</artifactId>
-            <version>1.51h</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.sun</groupId>
@@ -98,7 +146,6 @@
         <dependency>
             <groupId>nz.ac.waikato.cms.weka</groupId>
             <artifactId>weka-dev</artifactId>
-            <version>3.9.0</version>
             <exclusions>
                 <exclusion>
                     <groupId>nz.ac.waikato.cms.weka.thirdparty</groupId>

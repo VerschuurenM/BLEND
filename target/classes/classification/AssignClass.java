@@ -19,12 +19,15 @@ import Nucleus.Nucleus;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.gui.Roi;
+import ij.plugin.Duplicator;
+import ij.plugin.ZProjector;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -35,6 +38,7 @@ public class AssignClass {
     String path;
     int curvature;
     int fourierDescriptor;
+    int nChannels;
     boolean saveCroppedNuclei;
     String folder;
     String filename = "ResultsClassification.csv";
@@ -47,20 +51,49 @@ public class AssignClass {
     }
 
     //public ArrayList<String> exec(String[] imageArray, Nucleus[] nuclei, int imageIndex, int roiIndex, ArrayList<String> text, String label) {
-    public ArrayList<String> exec(ImagePlus imp, Nucleus[] nuclei, int roiIndex, ArrayList<String> text, String label) {
+    public ArrayList<String> exec(ImagePlus impStack, String titleImp, Nucleus[] nuclei, int roiIndex, ArrayList<String> text, String label) {
         textList = text;
+        nChannels = impStack.getNChannels();
         
         Nucleus nucleus = nuclei[roiIndex];
         Roi roi = nucleus.roiNucleus;
-        String imageTitle = imp.getTitle();
+        Duplicator dup = new Duplicator();
         
         nucleus.labelClass=label;
 
+        ImagePlus impCH1 = new ImagePlus();
+        ImagePlus impCH2 = new ImagePlus();
+        ImagePlus impCH3 = new ImagePlus();
+        ImagePlus impCH4 = new ImagePlus();
+     
+        impCH1 = dup.run(impStack, 1, 1, 1, 1, 1, 1);
+        if(nChannels>1){
+            impCH2 = dup.run(impStack, 2, 2, 1, 1, 1, 1);
+        }
+        if(nChannels>2){
+            impCH3 = dup.run(impStack, 3, 3, 1, 1,  1, 1);
+        }
+        if(nChannels>3){
+            impCH4 = dup.run(impStack, 4, 4, 1, 1, 1, 1);
+        }
+        
         shapeDescriptors.ShapeDescriptors morpho = new shapeDescriptors.ShapeDescriptors();
-        nucleus.morpho = morpho.exec(imp, roi, "Morph");
-        textureDiscriptors.GLCMTexture textural = new textureDiscriptors.GLCMTexture();
-        nucleus.textural = textural.exec(imp, roi, "Text");
-
+        nucleus.morpho = morpho.exec(impCH1, roi, "Morph");
+        for(int ch=1; ch<=nChannels;ch++){
+            textureDiscriptors.GLCMTexture textural = new textureDiscriptors.GLCMTexture();
+            ImagePlus impChannel = new ImagePlus();
+            if(ch==1){
+                impChannel=impCH1;
+            }else if (ch==2){
+                impChannel=impCH2;
+            }else if (ch==3){ 
+                impChannel=impCH3;
+            }else if (ch==4){
+                impChannel=impCH4;
+            }
+            nucleus.textural.putAll(textural.exec(impChannel, roi, ("Text_Ch"+Integer.toString(ch))));
+        }
+        
         String csvFile = path;
         File f = new File(csvFile);
         String COMMA_DELIMITER = ",";
@@ -162,8 +195,11 @@ public class AssignClass {
             String newFolder = folder + "CroppedImages/";
             (new File(newFolder)).mkdirs();
             IJ.selectWindow("Crop");
-            String impTitleCrop = imageTitle + ";" + roiIndex + ";" + label;
+            String impTitleCrop = "Crop;"+ titleImp + ";" + roiIndex + ";" + label;
             IJ.saveAs("tiff", newFolder + impTitleCrop);
+            IJ.selectWindow("Composite");
+            String impTitleComposite = "Composite;"+ titleImp + ";" + roiIndex + ";" + label;
+            IJ.saveAs("tiff", newFolder + impTitleComposite);
         }
         try {
             FileWriter fstreamAdd = new FileWriter(path, false);

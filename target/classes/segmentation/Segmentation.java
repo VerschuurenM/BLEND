@@ -14,16 +14,12 @@
  */
 package segmentation;
 
-import GUI.GenericDialogPlus;
 import Nucleus.Nucleus;
 import ij.IJ;
 import ij.ImagePlus;
-import ij.Macro;
-import ij.WindowManager;
 import ij.gui.*;
 import ij.measure.Calibration;
 import ij.plugin.filter.ThresholdToSelection;
-import ij.plugin.filter.BackgroundSubtracter;
 import ij.plugin.filter.GaussianBlur;
 import ij.plugin.filter.RankFilters;
 import ij.plugin.frame.RoiManager;
@@ -103,7 +99,7 @@ public class Segmentation {
              impGradientRemoval.show();
              }
             //
-             //*/
+            //*/
 
             //Substract background
             ImagePlus impBackground = impGradientRemoval.duplicate();
@@ -156,15 +152,10 @@ public class Segmentation {
                     ImagePlus impDilated = Di.exec(impGlobalFiltered, dilations);
                     System.out.println("Dilation: " + (System.currentTimeMillis() - startTimeImage));
 
-                    if (showDebugImages) {
-                        impDilated.setTitle(imp.getTitle() + "_Dilated");
-                        impDilated.show();
-                    }
-
                     //LocalThreshold
                     LocalThreshold LT = new LocalThreshold(localThresholdMethod, impPreProcessed);
                     ArrayList<Roi> roiListLT = LT.exec(impDilated);
-                    measureFGBG = LT.getMeasurements();
+                    //measureFGBG = LT.getMeasurements();
                     System.out.println("LT: " + (System.currentTimeMillis() - startTimeImage));
 
                     //CompositeFilter       
@@ -187,9 +178,11 @@ public class Segmentation {
                 }
 
                 //IntensityFilter
-                IntensityFilter IF = new IntensityFilter();
-                ArrayList<Roi> roiListIF = IF.exec(impPreProcessed, roiListCF, measureFGBG);
+                //IntensityFilter IF = new IntensityFilter();
+                //ArrayList<Roi> roiListIF = IF.exec(impPreProcessed, roiListCF, measureFGBG);
 
+                ArrayList<Roi> roiListIF=roiListCF;
+                
                 if (showDebugImages) {
                     ImagePlus impTest = impDup.duplicate();
                     Overlay overlay = new Overlay();
@@ -281,7 +274,7 @@ public class Segmentation {
                         impTest.setOverlay(overlay);
                     }
 
-                    //Remove Small Roi
+                    //Remove Small & Large Rois
                     AreaFilterPost RSR = new AreaFilterPost();
                     ArrayList<Roi> roiListRSR = RSR.exec(impPreProcessed, roiListRRE, minArea, maxArea);
                     System.out.println("RemoveSmallRoi: " + (System.currentTimeMillis() - startTimeImage));
@@ -319,9 +312,11 @@ public class Segmentation {
                         nuclei[i] = new Nucleus(imp.getTitle(), shapeRoi, i);
                     }
                 } else {
-                    nuclei = new Nucleus[roiListIF.size()];
-                    for (int i = 0; i < roiListIF.size(); i++) {
-                        ShapeRoi shapeRoi = new ShapeRoi(roiListIF.get(i));
+                    AreaFilterPost RSR = new AreaFilterPost();
+                    ArrayList<Roi> roiListRSR = RSR.exec(impPreProcessed, roiListIF, minArea, maxArea);
+                    nuclei = new Nucleus[roiListRSR.size()];
+                    for (int i = 0; i < roiListRSR.size(); i++) {
+                        ShapeRoi shapeRoi = new ShapeRoi(roiListRSR.get(i));
                         nuclei[i] = new Nucleus(imp.getTitle(), shapeRoi, i);
                     }
                 }

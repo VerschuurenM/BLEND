@@ -56,7 +56,7 @@ public class ShapeDescriptors {
         }
         for (int i = 0; i < curvature.size(); i++) {
             double curv = CurvatureObject.exec(roi, curvature.get(i));
-            curvatureDescriptors.put("Morph_Curvature_" + Double.toString(curvatureMicron.get(i)), curv);
+            curvatureDescriptors.put(prefix+"_Curvature_" + Double.toString(curvatureMicron.get(i)), curv);
         }
 
         LinkedHashMap<String, Double> ellipticFourierDescriptors = EllipticFDObject.exec(roi);

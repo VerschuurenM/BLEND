@@ -14,6 +14,7 @@
  */
 package GUI;
 
+import ij.IJ;
 import java.util.*;
 import java.util.prefs.Preferences;
 import ij.Macro;
@@ -48,6 +49,7 @@ public class SettingsGUI {
 
     boolean backgroundSubtraction;
     double sizeRollingBall;
+    int indexFilterGUI;
     int indexFilter;
     double radiusFilter;
 
@@ -55,7 +57,9 @@ public class SettingsGUI {
     double maxArea;
 
     boolean twoPass;
+    int indexGlobalGUI;
     AutoThresholder.Method globalThresholdMethod;
+    int indexLocalGUI;
     AutoThresholder.Method localThresholdMethod;
     boolean refinement;
     double watershedThreshold;
@@ -115,7 +119,7 @@ public class SettingsGUI {
             gd.setInsets(0, inset, 0);
             gd.addCheckbox("Extract Morpho- & Textural Features", prefs.getBoolean("extractFeatures", true));
 
-            gd.setInsets(20, 0, 0);
+            gd.setInsets(1, 0, 0);
             gd.addMessage("PreProcessing:", new Font(null, Font.BOLD, 12));
             gd.setInsets(0, inset, 0);
             gd.addCheckbox("Background Subtraction", prefs.getBoolean("backgroundSubtraction", true));
@@ -123,7 +127,7 @@ public class SettingsGUI {
             gd.addChoice("Filter", filters, prefs.get("filter", "-"));
             gd.addNumericField("Radius Filter", prefs.getDouble("radiusFilter", 1), 0, 3, "px");
 
-            gd.setInsets(20, 0, 0);
+            gd.setInsets(1, 0, 0);
             gd.addMessage("Segmentation:", new Font(null, Font.BOLD, 12));
             gd.addNumericField("Min Area", prefs.getDouble("minArea", 45), 0, 3, "µm²");
             gd.addNumericField("Max Area", prefs.getDouble("maxArea", 500), 0, 3, "µm²");
@@ -152,9 +156,9 @@ public class SettingsGUI {
             calibration = gd.getNextNumber();
             prefs.putDouble("calibration", calibration);
             nChannels=Integer.parseInt(gd.getNextChoice());
-            prefs.put("nChannels", Integer.toString(nChannels));          
+            prefs.put("nChannels", Integer.toString(nChannels));  
             channel=Integer.parseInt(gd.getNextChoice());
-            prefs.put("channel", Integer.toString(channel));   
+            prefs.put("channel", Integer.toString(channel)); 
             String zProjString = gd.getNextChoice();
             zProjection=Arrays.asList(zProjOptions).indexOf(zProjString);
             prefs.put("zProjection", zProjString);
@@ -173,23 +177,22 @@ public class SettingsGUI {
             prefs.putBoolean("backgroundSubtraction", backgroundSubtraction);
             sizeRollingBall = gd.getNextNumber();
             prefs.putDouble("sizeRollingBall", sizeRollingBall);
-            int index = gd.getNextChoiceIndex();
-            indexFilter = filterIndex[index];
-            prefs.put("filter", filters[index]);
+            indexFilterGUI = gd.getNextChoiceIndex();
+            indexFilter = filterIndex[indexFilterGUI];
+            prefs.put("filter", filters[indexFilterGUI]);
             radiusFilter = gd.getNextNumber();
             prefs.putDouble("radiusFilter", radiusFilter);
-
             minArea = gd.getNextNumber();
             prefs.putDouble("minArea", minArea);
             maxArea = gd.getNextNumber();
             prefs.putDouble("maxArea", maxArea);
-            index = gd.getNextChoiceIndex();
-            globalThresholdMethod = thresholdMethods[index];
-            prefs.put("global", thresholds[index]);
-            index = gd.getNextChoiceIndex();
-            localThresholdMethod = thresholdMethodsLocal[index];
-            prefs.put("local", thresholdsLocal[index]);
-            if (thresholdsLocal[index].equals("-")) {
+            indexGlobalGUI = gd.getNextChoiceIndex();
+            globalThresholdMethod = thresholdMethods[indexGlobalGUI];
+            prefs.put("global", thresholds[indexGlobalGUI]);
+            indexLocalGUI = gd.getNextChoiceIndex();
+            localThresholdMethod = thresholdMethodsLocal[indexLocalGUI];
+            prefs.put("local", thresholdsLocal[indexLocalGUI]);
+            if (thresholdsLocal[indexLocalGUI].equals("-")) {
                 twoPass = false;
             } else {
                 twoPass = true;
@@ -198,7 +201,6 @@ public class SettingsGUI {
             prefs.putBoolean("refinement", refinement);
             watershedThreshold = gd.getNextNumber();
             prefs.putDouble("watershedThreshold", watershedThreshold);
-
         } else if (functionality == 1) {
             gd = new GenericDialogPlus("Supervised Classification");
 
@@ -264,9 +266,9 @@ public class SettingsGUI {
             prefs.putBoolean("backgroundSubtraction", backgroundSubtraction);
             sizeRollingBall = gd.getNextNumber();
             prefs.putDouble("sizeRollingBall", sizeRollingBall);
-            int index = gd.getNextChoiceIndex();
-            indexFilter = filterIndex[index];
-            prefs.put("filter", filters[index]);
+            indexFilterGUI = gd.getNextChoiceIndex();
+            indexFilter = filterIndex[indexFilterGUI];
+            prefs.put("filter", filters[indexFilterGUI]);
             radiusFilter = gd.getNextNumber();
             prefs.putDouble("radiusFilter", radiusFilter);
 
@@ -274,13 +276,13 @@ public class SettingsGUI {
             prefs.putDouble("minArea", minArea);
             maxArea = gd.getNextNumber();
             prefs.putDouble("maxArea", maxArea);
-            index = gd.getNextChoiceIndex();
-            globalThresholdMethod = thresholdMethods[index];
-            prefs.put("global", thresholds[index]);
-            index = gd.getNextChoiceIndex();
-            localThresholdMethod = thresholdMethodsLocal[index];
-            prefs.put("local", thresholdsLocal[index]);
-            if (thresholdsLocal[index].equals("-")) {
+            indexGlobalGUI = gd.getNextChoiceIndex();
+            globalThresholdMethod = thresholdMethods[indexGlobalGUI];
+            prefs.put("global", thresholds[indexGlobalGUI]);
+            indexLocalGUI= gd.getNextChoiceIndex();
+            localThresholdMethod = thresholdMethodsLocal[indexLocalGUI];
+            prefs.put("local", thresholdsLocal[indexLocalGUI]);
+            if (thresholdsLocal[indexLocalGUI].equals("-")) {
                 twoPass = false;
             } else {
                 twoPass = true;
@@ -379,9 +381,9 @@ public class SettingsGUI {
             prefs.putBoolean("backgroundSubtraction", backgroundSubtraction);
             sizeRollingBall = gd.getNextNumber();
             prefs.putDouble("sizeRollingBall", sizeRollingBall);
-            int index = gd.getNextChoiceIndex();
-            indexFilter = filterIndex[index];
-            prefs.put("filter", filters[index]);
+            indexFilterGUI = gd.getNextChoiceIndex();
+            indexFilter = filterIndex[indexFilterGUI];
+            prefs.put("filter", filters[indexFilterGUI]);
             radiusFilter = gd.getNextNumber();
             prefs.putDouble("radiusFilter", radiusFilter);
 
@@ -391,13 +393,13 @@ public class SettingsGUI {
             prefs.putDouble("maxArea", maxArea);
             scanThresholds = gd.getNextBoolean();
             prefs.putBoolean("scanThresholds", scanThresholds);
-            index = gd.getNextChoiceIndex();
-            globalThresholdMethod = thresholdMethods[index];
-            prefs.put("global", thresholds[index]);
-            index = gd.getNextChoiceIndex();
-            localThresholdMethod = thresholdMethodsLocal[index];
-            prefs.put("local", thresholdsLocal[index]);
-            if (thresholdsLocal[index].equals("-")) {
+            indexGlobalGUI = gd.getNextChoiceIndex();
+            globalThresholdMethod = thresholdMethods[indexGlobalGUI];
+            prefs.put("global", thresholds[indexGlobalGUI]);
+            indexLocalGUI = gd.getNextChoiceIndex();
+            localThresholdMethod = thresholdMethodsLocal[indexLocalGUI];
+            prefs.put("local", thresholdsLocal[indexLocalGUI]);
+            if (thresholdsLocal[indexLocalGUI].equals("-")) {
                 twoPass = false;
             } else {
                 twoPass = true;
@@ -459,6 +461,26 @@ public class SettingsGUI {
             System.out.println("PlugIn Cancelled");
             throw new RuntimeException(Macro.MACRO_CANCELED);
         }
+        
+        IJ.log("Settings------");
+        IJ.log("OutputDir: "+outputDirectory);
+        IJ.log("InputDir: "+inputDirectory);
+        IJ.log("Calibration: "+calibration+"µm/px");  
+        IJ.log("nChannels: "+nChannels);
+        IJ.log("Channel: "+channel);
+        IJ.log("zProjection: "+zProjOptions[zProjection]);
+        IJ.log("Background Correction: "+backgroundSubtraction);
+        IJ.log("Size Background Correction: "+ sizeRollingBall);
+        IJ.log("Filter: "+filters[indexFilterGUI]);
+        IJ.log("Radius Filter: "+radiusFilter);
+        IJ.log("Min Area: "+ minArea + "µm2");
+        IJ.log("Max Area: "+ maxArea + "µm2");
+        IJ.log("Global Threshold: "+ thresholds[indexGlobalGUI]);
+        IJ.log("Local Threshold: "+ thresholdsLocal[indexLocalGUI]);
+        IJ.log("Contour Refinement: "+ refinement);
+        IJ.log("Watershed Threshold "+ watershedThreshold);
+        IJ.log("--------------");
+
     }
 
     public String getInputDirectory() {
@@ -532,6 +554,7 @@ public class SettingsGUI {
     public boolean getScanThresholds() {
         return scanThresholds;
     }
+    
 
     public int getWidth() {
         return impWidth;

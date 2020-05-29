@@ -26,7 +26,7 @@ public class CompositeFilter {
 
     protected ArrayList<Roi> exec(ImagePlus imp, ArrayList<Roi> roiList) {
     //Some seperated ROIs are seen as one --> Split these combined ROIs
-        
+
         impWidth = imp.getWidth();
         impHeight = imp.getHeight();
         
@@ -36,29 +36,35 @@ public class CompositeFilter {
             ShapeRoi roiCombinedShape = new ShapeRoi(roiList.get(roiNr));
             Roi[] roiArrayLocal = roiCombinedShape.getRois();
             
-            ShapeRoi mainRoiShape = null;
+            if(roiArrayLocal.length==1){
+                roiListReturn.add(roiCombinedShape);
+            }else{
+                ShapeRoi mainRoiShape = null;
+                double maxLength = 0;
+                //For loop over Combined Rois -> Search voor Roi with largest bounding rectangle
+                //Set this Roi as main-Roi
+                for (int i = 0; i < roiArrayLocal.length; i++) {
 
-            double maxLength = 0;
-            //For loop over Combined Rois -> Search voor Roi with largest bounding rectangle
-            //Set this Roi as main-Roi
-            for (int i = 0; i < roiArrayLocal.length; i++) {
-                if (roiArrayLocal[i].getLength() > maxLength && roiArrayLocal[i].getLength() > 10) {
-                    maxLength = roiArrayLocal[i].getLength();
-                    ShapeRoi maxShapeRoi = new ShapeRoi(roiArrayLocal[i]);
-                    mainRoiShape = maxShapeRoi;
+
+                    if (roiArrayLocal[i].getLength() > maxLength && roiArrayLocal[i].getLength() > 10) {
+                        maxLength = roiArrayLocal[i].getLength();
+                        ShapeRoi maxShapeRoi = new ShapeRoi(roiArrayLocal[i]);
+                        mainRoiShape = maxShapeRoi;
+                    }
+                }
+
+                //For loop over Combined Rois 
+                //Perimeter >=15% maxLenght & < maxLength--> Add Seperate Roi to RoiList
+                for (int i = 0; i < roiArrayLocal.length; i++) {
+                        if (roiArrayLocal[i].getLength() >= maxLength / 100 * 15 && roiArrayLocal[i].getLength() < maxLength) {
+                        roiListReturn.add(roiArrayLocal[i]);
+                    }
+                }
+                if (mainRoiShape != null) {
+                    roiListReturn.add(mainRoiShape);
                 }
             }
-
-            //For loop over Combined Rois 
-            //Perimeter >=15% maxLenght & < maxLength--> Add Seperate Roi to RoiList
-            for (int i = 0; i < roiArrayLocal.length; i++) {
-                    if (roiArrayLocal[i].getLength() >= maxLength / 100 * 15 && roiArrayLocal[i].getLength() < maxLength) {
-                    roiListReturn.add(roiArrayLocal[i]);
-                }
-            }
-            if (mainRoiShape != null) {
-                roiListReturn.add(mainRoiShape);
-            }
+   
         }
         return roiListReturn;
 

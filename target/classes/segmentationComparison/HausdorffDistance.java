@@ -44,8 +44,6 @@ public class HausdorffDistance {
         IJ.run(maskA, "Outline", "");
         IJ.run(maskB, "Outline", "");
         
-        maskA.show();
-
         int pixelsContourA = maskA.getStatistics().histogram[maskA.getStatistics().histogram.length - 1];
         int pixelsContourB = maskB.getStatistics().histogram[maskB.getStatistics().histogram.length - 1];
 

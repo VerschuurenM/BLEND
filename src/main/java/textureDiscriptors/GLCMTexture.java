@@ -54,12 +54,14 @@ public class GLCMTexture {
         ImagePlus impDup = imp.duplicate();
 
         //Intensity measurements
-        int m = Measurements.MEAN;
+        int m = Measurements.MEAN+Measurements.STD_DEV;
         Analyzer analyzer = new Analyzer(impDup, m, rt);
         impDup.setRoi(inputRoi);
         analyzer.measure();
         imp.killRoi();
         textureDescriptors.put(title + "_Intensity", rt.getValueAsDouble(ResultsTable.MEAN, 0));
+        textureDescriptors.put(title + "_StDev", rt.getValueAsDouble(ResultsTable.STD_DEV, 0));
+
 
         rt.reset();
         imp.killRoi();

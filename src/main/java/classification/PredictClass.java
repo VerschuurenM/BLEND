@@ -18,6 +18,7 @@ import Nucleus.Nucleus;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.gui.Roi;
+import ij.plugin.Duplicator;
 import java.awt.Rectangle;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -39,25 +40,53 @@ public class PredictClass {
     String filename = "Temp.csv";
     String path;
 
+    int nChannels;
+    
     boolean error = false;
 
-    public PredictClass(String folder, String inputDirectory) {
+    public PredictClass(String folder, String inputDirectory, int nChannels) {
         this.inputDirectory = inputDirectory;
         this.folder = folder;
         this.path = folder + filename;
     }
 
-    //public String exec(FilteredClassifier fc, String[] imageArray, int imageIndex, Nucleus nucleus, String[] classLabels) {
-      public String exec(FilteredClassifier fc, ImagePlus imp, Nucleus nucleus, String[] classLabels) {
-
+      public String exec(FilteredClassifier fc, ImagePlus impStack, Nucleus nucleus, String[] classLabels) {
+        nChannels=impStack.getNChannels();
+        Duplicator dup = new Duplicator();
         Roi roi = nucleus.roiNucleus;
-        //imp.show();
-        //ImagePlus imp = IJ.openImage(inputDirectory + imageArray[imageIndex]);
 
+        ImagePlus impCH1 = new ImagePlus();
+        ImagePlus impCH2 = new ImagePlus();
+        ImagePlus impCH3 = new ImagePlus();
+        ImagePlus impCH4 = new ImagePlus();
+     
+        impCH1 = dup.run(impStack, 1, 1, 1, 1, 1, 1);
+        if(nChannels>1){
+            impCH2 = dup.run(impStack, 2, 2, 1, 1, 1, 1);
+        }
+        if(nChannels>2){
+            impCH3 = dup.run(impStack, 3, 3, 1, 1,  1, 1);
+        }
+        if(nChannels>3){
+            impCH4 = dup.run(impStack, 4, 4, 1, 1, 1, 1);
+        }
+        
         shapeDescriptors.ShapeDescriptors morpho = new shapeDescriptors.ShapeDescriptors();
-        nucleus.morpho = morpho.exec(imp, roi, "Morph");
-        textureDiscriptors.GLCMTexture textural = new textureDiscriptors.GLCMTexture();
-        nucleus.textural = textural.exec(imp, roi, "Text");
+        nucleus.morpho = morpho.exec(impCH1, roi, "Morph");
+        for(int ch=1; ch<=nChannels;ch++){
+            textureDiscriptors.GLCMTexture textural = new textureDiscriptors.GLCMTexture();
+            ImagePlus impChannel = new ImagePlus();
+            if(ch==1){
+                impChannel=impCH1;
+            }else if (ch==2){
+                impChannel=impCH2;
+            }else if (ch==3){ 
+                impChannel=impCH3;
+            }else if (ch==4){
+                impChannel=impCH4;
+            }
+            nucleus.textural.putAll(textural.exec(impChannel, roi, ("Text_Ch"+Integer.toString(ch))));
+        }
 
         writeResults(nucleus, classLabels);
 

@@ -19,22 +19,17 @@ import java.io.*;
 import java.util.*;
 import java.util.zip.*;
 import GUI.*;
-import com.sun.java.swing.plaf.windows.WindowsDesktopManager;
 import segmentationComparison.*;
 import segmentation.*;
 import ij.IJ;
 import ij.gui.WaitForUserDialog;
 import ij.Prefs;
 import ij.ImagePlus;
-import ij.Macro;
-import ij.WindowManager;
 import ij.gui.Roi;
 import ij.gui.Overlay;
-import ij.gui.Toolbar;
 import ij.io.RoiDecoder;
 import ij.measure.Calibration;
 import ij.plugin.Duplicator;
-import ij.plugin.MacroInstaller;
 import ij.plugin.PlugIn;
 import ij.plugin.ZProjector;
 import ij.plugin.frame.RoiManager;
@@ -43,7 +38,6 @@ import ij.process.ImageProcessor;
 import ij.process.LUT;
 import ij.WindowManager;
 import java.awt.Color;
-import java.awt.event.KeyEvent;
 
 public class BLEND_Plugin implements PlugIn {
 
@@ -95,8 +89,13 @@ public class BLEND_Plugin implements PlugIn {
         "MinError", "Minimum", "Moment", "Otsu", "Percentile", "RenyiEntropy", "Shanbhag", "Triangle", "Yen"};
 
     public void run(String arg) {
+
         Prefs.blackBackground = true;
         boolean close = WindowManager.closeAllWindows();
+        
+        IJ.log("-----------------------------------");
+        IJ.log("BLEND - BLEbbedNucleiDetector");
+        IJ.log("-----------------------------------");
 
         //Get all configuration-parameters from config-file
         SettingsGUI ICN = new SettingsGUI();
@@ -122,15 +121,19 @@ public class BLEND_Plugin implements PlugIn {
                 int[] dim = impStack.getDimensions();
                 impWidth = dim[0];
                 impHeight = dim[1];
+                Calibration cal = new Calibration(impStack);
+                cal.pixelWidth = calibration;
+                cal.pixelHeight = calibration;
+                cal.pixelDepth = calibration;
+                cal.setUnit("µm");
+                impStack.setCalibration(cal);
+
                 Duplicator dup = new Duplicator();
                 ImagePlus imp = new ImagePlus();
 
-                if (!impStack.isHyperStack()) {
-                    if (nChannels != impStack.getDimensions()[2]) {
-                        imp = dup.run(impStack, 1, 1, channel, channel, 1, 1);
-                    } else {
-                        imp = dup.run(impStack, channel, channel, 1, impStack.getNSlices(), 1, 1);
-                    }
+                if (impStack.getNSlices()==1) {
+                    imp = dup.run(impStack, channel, channel, 1, 1, 1, 1);
+
                 } else {
                     imp = dup.run(impStack, channel, channel, 1, impStack.getNSlices(), 1, 1);
                     ZProjector zproj = new ZProjector(imp);
@@ -139,12 +142,6 @@ public class BLEND_Plugin implements PlugIn {
                     imp = zproj.getProjection();
                 }
 
-                Calibration cal = new Calibration(imp);
-                cal.pixelWidth = calibration;
-                cal.pixelHeight = calibration;
-                cal.pixelDepth = calibration;
-                cal.setUnit("µm");
-                imp.setCalibration(cal);
                 imp.setLut(LUT.createLutFromColor(Color.lightGray));
                 imp.setTitle(impStack.getTitle());
 
@@ -157,7 +154,7 @@ public class BLEND_Plugin implements PlugIn {
                         rm.runCommand("Save", newFolder + imageArray.get(imagesInArray) + ".zip");
                     }
                     if (extractFeatures) {
-                        extractFeatures(nuclei, imp, newFolder);
+                        extractFeatures(nuclei, impStack, newFolder);
                     }
                     if (showResultImages == true || saveResultImages == true) {
                         Overlay overlay = new Overlay();
@@ -195,8 +192,7 @@ public class BLEND_Plugin implements PlugIn {
             IJ.log("BLEND - Functionality: Classification - END");
             IJ.log("-----------------------------------");
         } //Functionality = 2: Validation
-        else if (functionality
-                == 2) {
+        else if (functionality== 2) {
             IJ.log("-----------------------------------");
             IJ.log("BLEND - Functionality: Validation - START");
             IJ.log("-----------------------------------");
@@ -421,8 +417,7 @@ public class BLEND_Plugin implements PlugIn {
             IJ.log("BLEND - Functionality: Validation - END");
             IJ.log("-----------------------------------");
         } //Functionality = 4: RoiList comparison
-        else if (functionality
-                == 3) {
+        else if (functionality== 3) {
             IJ.log("-----------------------------------");
             IJ.log("BLEND - Functionality: Comparison - START");
             IJ.log("-----------------------------------");
@@ -451,6 +446,8 @@ public class BLEND_Plugin implements PlugIn {
             IJ.log("BLEND - Functionality: Comparison - END");
             IJ.log("-----------------------------------");
         }
+        IJ.selectWindow("Log");
+        IJ.saveAs("Text",outputDirectory+"Log.txt");
     }
 
     public void FileWrite(String outputDirectory, String fileName, String text) {
@@ -466,15 +463,75 @@ public class BLEND_Plugin implements PlugIn {
         }
     }
 
-    private void extractFeatures(Nucleus[] nuclei, ImagePlus imp, String newFolder) {
+    private void extractFeatures(Nucleus[] nuclei, ImagePlus impStack, String newFolder) {
         IJ.log("Extracting features ...");
+        
+        Duplicator dup = new Duplicator();
+        ImagePlus impCH1 = new ImagePlus();
+        ImagePlus impCH2 = new ImagePlus();
+        ImagePlus impCH3 = new ImagePlus();
+        ImagePlus impCH4 = new ImagePlus();
+        
+        if (impStack.getNSlices()==1) {
+            impCH1 = dup.run(impStack, 1, 1, 1, 1, 1, 1);
+            if(nChannels>1){
+                impCH2 = dup.run(impStack, 2, 2, 1, 1, 1, 1);
+            }
+            if(nChannels>2){
+                impCH3 = dup.run(impStack, 3, 3, 1, 1,  1, 1);
+            }
+            if(nChannels>3){
+                impCH4 = dup.run(impStack, 4, 4, 1, 1, 1, 1);
+            }
+        } else {
+            impCH1 = dup.run(impStack, 1, 1, 1, impStack.getNSlices(), 1, 1);
+            ZProjector zproj = new ZProjector(impCH1);
+            zproj.setMethod(zProjection);
+            zproj.doProjection();
+            impCH1 = zproj.getProjection();
+            if(nChannels>1){
+                impCH1 = dup.run(impStack, 2, 2, 1, impStack.getNSlices(), 1, 1);
+                zproj = new ZProjector(impCH2);
+                zproj.setMethod(zProjection);
+                zproj.doProjection();
+                impCH2 = zproj.getProjection();
+            }
+            if(nChannels>2){
+                impCH3 = dup.run(impStack, 3, 3, 1, impStack.getNSlices(), 1, 1);
+                zproj = new ZProjector(impCH3);
+                zproj.setMethod(zProjection);
+                zproj.doProjection();
+                impCH3 = zproj.getProjection();            
+            }
+            if(nChannels>3){
+                impCH4 = dup.run(impStack, 4, 4, 1, impStack.getNSlices(), 1, 1);
+                zproj = new ZProjector(impCH4);
+                zproj.setMethod(zProjection);
+                zproj.doProjection();
+                impCH4 = zproj.getProjection();            
+            }
+        }
+        
         for (int i = 0; i < nuclei.length; i++) {
             Nucleus nucleus = nuclei[i];
             Roi roi = nucleus.roiNucleus;
             shapeDescriptors.ShapeDescriptors morpho = new shapeDescriptors.ShapeDescriptors();
-            nucleus.morpho = morpho.exec(imp, roi, "Morph");
-            textureDiscriptors.GLCMTexture textural = new textureDiscriptors.GLCMTexture();
-            nucleus.textural = textural.exec(imp, roi, "Text");
+            nucleus.morpho = morpho.exec(impCH1, roi, "Morph");
+            for(int ch=1; ch<=nChannels;ch++){
+                textureDiscriptors.GLCMTexture textural = new textureDiscriptors.GLCMTexture();
+                ImagePlus impChannel = new ImagePlus();
+                if(ch==1){
+                    impChannel=impCH1;
+                }else if (ch==2){
+                    impChannel=impCH2;
+                }else if (ch==3){ 
+                    impChannel=impCH3;
+                }else if (ch==4){
+                    impChannel=impCH4;
+                }
+                nucleus.textural.putAll(textural.exec(impChannel, roi, ("Text_Ch"+Integer.toString(ch))));
+            }
+
         }
         String csvFile = newFolder + "Features.csv";
         File f = new File(csvFile);
