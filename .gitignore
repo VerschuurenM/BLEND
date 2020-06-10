@@ -4,6 +4,7 @@
 *.DS_Store
 *nb-configuration.xml
 
+
 /target/*
 !target/BLEND_Plugin-0.2.1-SNAPSHOT.jar
 !target/BLEND_Plugin-0.2.1-SNAPSHOT-jar-with-dependencies.jar
