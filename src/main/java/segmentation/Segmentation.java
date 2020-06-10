@@ -178,10 +178,8 @@ public class Segmentation {
                 }
 
                 //IntensityFilter
-                //IntensityFilter IF = new IntensityFilter();
-                //ArrayList<Roi> roiListIF = IF.exec(impPreProcessed, roiListCF, measureFGBG);
-
-                ArrayList<Roi> roiListIF=roiListCF;
+                IntensityFilter IF = new IntensityFilter();
+                ArrayList<Roi> roiListIF = IF.exec(impPreProcessed, roiListCF, measureFGBG);
                 
                 if (showDebugImages) {
                     ImagePlus impTest = impDup.duplicate();

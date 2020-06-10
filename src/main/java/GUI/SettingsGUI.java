@@ -478,7 +478,7 @@ public class SettingsGUI {
         IJ.log("Global Threshold: "+ thresholds[indexGlobalGUI]);
         IJ.log("Local Threshold: "+ thresholdsLocal[indexLocalGUI]);
         IJ.log("Contour Refinement: "+ refinement);
-        IJ.log("Watershed Threshold "+ watershedThreshold);
+        IJ.log("Watershed Threshold: "+ watershedThreshold);
         IJ.log("--------------");
 
     }
