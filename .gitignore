@@ -2,6 +2,4 @@
 /.project
 /.settings/
 *.DS_Store
-/._*
-
 /target/
