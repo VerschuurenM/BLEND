@@ -106,7 +106,7 @@ public class SettingsGUI {
             gd.setInsets(0, 0, 0);
             gd.addNumericField("Calibration", prefs.getDouble("calibration", 0.19), 5, 10, "µm/px");
             gd.addChoice("Number Channels",channelOptions, prefs.get("nChannels","1"));
-            gd.addChoice("Channel To Analyse", channelOptions, prefs.get("channel", "1"));
+            gd.addChoice("Segmentation Channel", channelOptions, prefs.get("channel", "1"));
             gd.addChoice("Z Projection Method:", zProjOptions, prefs.get("zProjection","Average Intensity"));
             gd.setInsets(0, inset, 0);
             gd.addCheckbox("Generate Debug Images", prefs.getBoolean("debugImages", true));
@@ -210,7 +210,7 @@ public class SettingsGUI {
             gd.addDirectoryField("Choose Output Folder: ", prefs.get("outputFolder", ""), 12);
             gd.addNumericField("Calibration", prefs.getDouble("calibration", 0.19), 5, 10, "µm/px");
             gd.addChoice("Number Channels",channelOptions, prefs.get("nChannels","1"));
-            gd.addChoice("Channel To Analyse", channelOptions, prefs.get("channel", "1"));
+            gd.addChoice("Segmentation Channel", channelOptions, prefs.get("channel", "1"));
             gd.addChoice("Z Projection Method:", zProjOptions, prefs.get("zProjection","Average Intensity"));
             gd.setInsets(0, inset, 0);
             gd.addCheckbox("Save Cropped Nuclei", prefs.getBoolean("saveCroppedNuclei", true));
@@ -301,7 +301,7 @@ public class SettingsGUI {
             gd.addDirectoryField("Choose Output Folder: ", prefs.get("outputFolder", ""), 12);
             gd.addNumericField("Calibration", prefs.getDouble("calibration", 0.19), 5, 10, "µm/px");
             gd.addChoice("Number Channels",channelOptions, prefs.get("nChannels","1"));
-            gd.addChoice("Channel To Analyse", channelOptions, prefs.get("channel", "1"));
+            gd.addChoice("Segmentation Channel", channelOptions, prefs.get("channel", "1"));
             gd.addChoice("Z Projection Method:", zProjOptions, prefs.get("zProjection","Average Intensity"));
             
             gd.setInsets(0, inset, 0);
