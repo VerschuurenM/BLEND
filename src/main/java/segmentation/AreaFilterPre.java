@@ -37,6 +37,10 @@ public class AreaFilterPre {
         //Convert ShapeRoi into RoiArray (Seperate Rois)
         ShapeRoi roiGlobalShape = new ShapeRoi(roiGlobal);
         Roi[] roiArray = roiGlobalShape.getRois();
+        //Fix Bug .getRois()
+        if (roiArray.length==1){
+            roiArray = new Roi[]{roiGlobalShape};
+        }
         
         //Measurements
         Analyzer.setMeasurements(0);
@@ -49,7 +53,7 @@ public class AreaFilterPre {
             ResultsTable rt = new ResultsTable();
             Analyzer analyzer = new Analyzer(imp, measurements, rt);
             //imp.show()
-            imp.setRoi(roiArray[i]);
+            imp.setRoi(roiArray[i]); 
             analyzer.measure();
             imp.killRoi();
             double areaRoi = rt.getValueAsDouble(ResultsTable.AREA, 0);

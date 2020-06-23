@@ -169,7 +169,12 @@ public class Segmentation {
                     Roi roiGlobalFiltered = ThresholdToSelectionObject.convert(impGlobalFiltered.getProcessor());
                     ShapeRoi roiGlobalFilteredShape = new ShapeRoi(roiGlobalFiltered);
                     Roi[] roiArrayGlobalFiltered = roiGlobalFilteredShape.getRois();
+                    //Fix Bug .getRois()
+                    if (roiArrayGlobalFiltered.length==1){
+                        roiArrayGlobalFiltered = new Roi[]{roiGlobalFilteredShape};
+                    }
                     ArrayList<Roi> roiListGlobalFiltered = new ArrayList<Roi>(Arrays.asList(roiArrayGlobalFiltered));
+                    
 
                     //CompositeFilter       
                     CompositeFilter CF = new CompositeFilter();

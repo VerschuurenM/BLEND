@@ -142,6 +142,10 @@ public class Watershed {
             Roi roiGlobalWS = TTS.convert(impWS.getProcessor());
             ShapeRoi globalShapeWS = new ShapeRoi(roiGlobalWS);
             Roi[] roiArrayWS = globalShapeWS.getRois();
+            //Fix Bug .getRois()
+            if (roiArrayWS.length==1){
+                roiArrayWS = new Roi[]{globalShapeWS};
+            }
 
             //Get ROIs WatershedLines
             ThresholdToSelection TTS2 = new ThresholdToSelection();
@@ -149,6 +153,10 @@ public class Watershed {
             Roi roiGlobalWSLines = TTS2.convert(impWSLines.getProcessor());
             ShapeRoi globalShapeWSLines = new ShapeRoi(roiGlobalWSLines);
             Roi[] roiArrayWSLines = globalShapeWSLines.getRois();
+            //Fix Bug .getRois()
+            if (roiArrayWSLines.length==1){
+                roiArrayWSLines = new Roi[]{globalShapeWSLines};
+            }
 
             impWS.setProcessor(impWS.getProcessor().convertToFloat());
             impWS.getProcessor().setIntArray(ipMask.getIntArray());

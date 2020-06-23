@@ -60,24 +60,28 @@ public class LocalThreshold {
         Roi roiGlobal = ThresholdToSelectionObject.convert(impBinary.getProcessor());
         ShapeRoi roiGlobalShape = new ShapeRoi(roiGlobal);
         roiArray = roiGlobalShape.getRois();
+        //Fix Bug .getRois()
+        if (roiArray.length==1){
+            roiArray = new Roi[]{roiGlobalShape};
+        }
 
         // LocalThreshold in Dilated Roi
         for (int i = 0; i < roiArray.length; i++) {
             if (roiArray[i] != null) {
-
                 //Get Threshold
+                
                 ImagePlus impDup = new Duplicator().run(imp);
                 impDup.setTitle("Local");
-                impDup.setRoi(roiArray[i]);
+                //Fix Bug getRois
+                impDup.setRoi(roiArray[i]);                
                 impDup.getProcessor().setAutoThreshold(localThresholdMethod, true);
                 IJ.run(impDup, "Make Binary", "");
-
                 // If roi is not entire image --> Fill black outside dilated Roi
                 impDup.getProcessor().setColor(Color.BLACK);
                 if (roiArray[i].getBounds().getWidth() < impWidth || roiArray[i].getBounds().getHeight() < impHeight) {
-                    impDup.getProcessor().fillOutside(roiArray[i]);
+                 impDup.getProcessor().fillOutside(roiArray[i]);
                 }
-
+                
                 //Reset roi
                 impDup.killRoi();
 
