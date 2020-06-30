@@ -21,7 +21,7 @@
     
     <groupId>be.ua.mverschuuren</groupId>
     <artifactId>BLEND_Plugin</artifactId>
-    <version>0.2.1-SNAPSHOT</version>
+    <version>0.2.2-SNAPSHOT</version>
     <name>BLEbbedNucleiDetector</name>
     <description>A Maven project implementing an ImageJ 1.x plugin</description>
     <url>https://www.uantwerpen.be/en/staff/winnok-devos/cell-team/scripts/</url>

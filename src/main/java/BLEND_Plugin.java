@@ -118,6 +118,10 @@ public class BLEND_Plugin implements PlugIn {
             for (int imagesInArray = 0; imagesInArray < imageArray.size(); imagesInArray++) {
                 IJ.log("Segmenting image: " + (imagesInArray + 1) + "/" + imageArray.size() + " ...");
                 ImagePlus impStack = IJ.openImage(inputDirectory + imageArray.get(imagesInArray));
+                //Correct if Slices and Channels are swichted in properties
+                if(impStack.getNChannels()!=nChannels & impStack.getNSlices()==nChannels){
+                    impStack.setDimensions(nChannels, impStack.getNSlices()*impStack.getNChannels()/nChannels, 1);
+                }
                 int[] dim = impStack.getDimensions();
                 impWidth = dim[0];
                 impHeight = dim[1];
@@ -226,6 +230,10 @@ public class BLEND_Plugin implements PlugIn {
                             for (int imagesInArray = 0; imagesInArray < imageArray.size(); imagesInArray++) {
 
                                 ImagePlus impStack = IJ.openImage(inputDirectory + imageArray.get(imagesInArray));
+                                //Correct if Slices and Channels are swichted in properties
+                                if(impStack.getNChannels()!=nChannels & impStack.getNSlices()==nChannels){
+                                    impStack.setDimensions(nChannels, impStack.getNSlices()*impStack.getNChannels()/nChannels, 1);
+                                }
                                 int[] dim = impStack.getDimensions();
                                 impWidth = dim[0];
                                 impHeight = dim[1];
@@ -278,6 +286,10 @@ public class BLEND_Plugin implements PlugIn {
                         Segmentation SegmentationObject = new Segmentation(false, backgroundSubtraction, sizeRollingBall, indexFilter, radiusFilter, twoPass, globalThresholdMethod, localThresholdMethod, refinement, watershed, minArea, maxArea);
                         for (int imagesInArray = 0; imagesInArray < imageArray.size(); imagesInArray++) {
                             ImagePlus impStack = IJ.openImage(inputDirectory + imageArray.get(imagesInArray));
+                            //Correct if Slices and Channels are swichted in properties
+                            if(impStack.getNChannels()!=nChannels & impStack.getNSlices()==nChannels){
+                                impStack.setDimensions(nChannels, impStack.getNSlices()*impStack.getNChannels()/nChannels, 1);
+                            }
                             int[] dim = impStack.getDimensions();
                             impWidth = dim[0];
                             impHeight = dim[1];
@@ -325,6 +337,10 @@ public class BLEND_Plugin implements PlugIn {
                     Segmentation SegmentationObject = new Segmentation(false, backgroundSubtraction, sizeRollingBall, indexFilter, radiusFilter, twoPass, globalThresholdMethod, localThresholdMethod, refinement, watershed, minArea, maxArea);
                     for (int imagesInArray = 0; imagesInArray < imageArray.size(); imagesInArray++) {
                         ImagePlus impStack = IJ.openImage(inputDirectory + imageArray.get(imagesInArray));
+                        //Correct if Slices and Channels are swichted in properties
+                        if(impStack.getNChannels()!=nChannels & impStack.getNSlices()==nChannels){
+                            impStack.setDimensions(nChannels, impStack.getNSlices()*impStack.getNChannels()/nChannels, 1);
+                        }
                         int[] dim = impStack.getDimensions();
                         impWidth = dim[0];
                         impHeight = dim[1];
@@ -372,6 +388,10 @@ public class BLEND_Plugin implements PlugIn {
                     Segmentation SegmentationObject = new Segmentation(false, backgroundSubtraction, sizeRollingBall, indexFilter, radiusFilter, twoPass, globalThresholdMethod, localThresholdMethod, refinement, watershed, minArea, maxArea);
                     for (int imagesInArray = 0; imagesInArray < imageArray.size(); imagesInArray++) {
                         ImagePlus impStack = IJ.openImage(inputDirectory + imageArray.get(imagesInArray));
+                        //Correct if Slices and Channels are swichted in properties
+                        if(impStack.getNChannels()!=nChannels & impStack.getNSlices()==nChannels){
+                            impStack.setDimensions(nChannels, impStack.getNSlices()*impStack.getNChannels()/nChannels, 1);
+                        }
                         int[] dim = impStack.getDimensions();
                         impWidth = dim[0];
                         impHeight = dim[1];

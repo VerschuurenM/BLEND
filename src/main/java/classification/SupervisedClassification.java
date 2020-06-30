@@ -194,6 +194,10 @@ public class SupervisedClassification {
             IJ.log("Segmenting Image: " + (imageIndex + 1) + "/" + imageArray.length + " ...");
 
             ImagePlus impStack = IJ.openImage(inputDirectory + imageArray[imageIndex]);
+            //Correct if Slices and Channels are swichted in properties
+            if(impStack.getNChannels()!=nChannels & impStack.getNSlices()==nChannels){
+                impStack.setDimensions(nChannels, impStack.getNSlices()*impStack.getNChannels()/nChannels, 1);
+            }
             //Calibration
             cal = new Calibration(impStack);
             cal.pixelWidth = calibration;
@@ -397,6 +401,10 @@ public class SupervisedClassification {
             if (classifierLoaded || imageIndex != beginImageIndex) {
                 
                 ImagePlus impStack = IJ.openImage(inputDirectory + imageArray[imageIndex]);
+                //Correct if Slices and Channels are swichted in properties
+                if(impStack.getNChannels()!=nChannels & impStack.getNSlices()==nChannels){
+                    impStack.setDimensions(nChannels, impStack.getNSlices()*impStack.getNChannels()/nChannels, 1);
+                }
                 titleImp = impStack.getTitle();
                 Duplicator dup = new Duplicator();
                 ImagePlus impGUITemp = new ImagePlus();

@@ -14,4 +14,4 @@ The following functions are implemented in the plugin:
 
 **INSTALL**
 
-BLEND is implemented as a java plugin in the software platform FIJI. Fiji can be downloaded from www.fiji.sc. BLEND can be downloaded from: https://github.com/VerschuurenM/BLEND. Drag 'n drop the “https://github.com/VerschuurenM/BLEND/blob/master/target/BLEND_Plugin-0.2.1-SNAPSHOT.jar” file into the FIJI user interface and save. After restarting FIJI, BLEND can be called from Plugins > BLEND.
+BLEND is implemented as a java plugin in the software platform FIJI. Fiji can be downloaded from www.fiji.sc. BLEND can be downloaded from: https://github.com/VerschuurenM/BLEND. Drag 'n drop the jar file that can be found in the target folder into the FIJI user interface and save. After restarting FIJI, BLEND can be called from Plugins > BLEND.
