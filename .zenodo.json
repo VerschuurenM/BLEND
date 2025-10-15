@@ -1,0 +1,23 @@
+{
+    "description": "FIJI plugin for accurate detection of dysmorphic nuclei. The following functions are implemented in the plugin: segmentation, supervised classifications, validation and compare roi lists.",
+    "creators": [
+        {
+            "orcid": "0000-0003-0357-7422",
+            "affiliation": "Laboratory of Cell Biology and Histology, University of Antwerp, Belgium - Antwerp Centre for Advanced Microscopy, Belgium - µNEURO Research Centre of Excellence, University of Antwerp, Antwerp, Belgium",
+            "name": "Verschuuren, Marlies"
+        },
+        {
+            "orcid": "0000-0003-0960-6781",
+            "affiliation": "Laboratory of Cell Biology and Histology, University of Antwerp, Belgium - Antwerp Centre for Advanced Microscopy, Belgium - µNEURO Research Centre of Excellence, University of Antwerp, Antwerp, Belgium",
+            "name": "De Vos, Winnok H."
+        }
+    ],
+    "related_identifiers": [
+        {
+            "scheme": "doi",
+            "identifier": "10.1371/journal.pone.0170688",
+            "relation": "isSupplementTo",
+            "resource_type": "publication-article"
+        }
+    ]
+}
