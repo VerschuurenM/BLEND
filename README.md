@@ -15,3 +15,6 @@ The following functions are implemented in the plugin:
 **INSTALL**
 
 BLEND is implemented as a java plugin in the software platform FIJI. Fiji can be downloaded from www.fiji.sc. BLEND can be downloaded from: https://github.com/VerschuurenM/BLEND. Drag 'n drop the jar file that can be found in the target folder into the FIJI user interface and save. After restarting FIJI, BLEND can be called from Plugins > BLEND.
+
+**CITATION**
+Verschuuren M, De Vylder J, Catrysse H, Robijns J, Philips W, De Vos WH. Accurate Detection of Dysmorphic Nuclei Using Dynamic Programming and Supervised Classification. PLoS One. 2017 Jan 26;12(1):e0170688. doi: 10.1371/journal.pone.0170688. Erratum in: PLoS One. 2017 Mar 6;12(3):e0173701. doi: 10.1371/journal.pone.0173701. PMID: 28125723; PMCID: PMC5268651.
